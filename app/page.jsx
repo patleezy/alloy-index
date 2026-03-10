@@ -3,8 +3,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PROFILES_KEY = "alloy_profiles";
-const THEME_KEY    = "alloy_theme";
+const PROFILES_KEY  = "alloy_profiles";
+const THEME_KEY     = "alloy_theme";
+const FAVORITES_KEY = "alloy_favorites";
 
 const NIKE_DEFAULTS = {
   name: "Nike",
@@ -90,7 +91,7 @@ const scoreColor = (s) => {
 // ─── Radar Chart ──────────────────────────────────────────────────────────────
 
 function RadarChart({ scores, theme }) {
-  const cx = 145, cy = 145, r = 95;
+  const cx = 120, cy = 120, r = 76;
   const keys = ["cultural","audience","platform","safety","international"];
   const labels = ["Cultural","Audience","Platform","Safety","Intl."];
   const step = (2 * Math.PI) / keys.length;
@@ -103,35 +104,41 @@ function RadarChart({ scores, theme }) {
   const isLight = theme === "light";
 
   return (
-    <svg width="290" height="290" viewBox="0 0 290 290" style={{ display: "block", margin: "0 auto" }}>
+    <svg width="240" height="240" viewBox="0 0 240 240" style={{ display: "block", margin: "0 auto", width: "100%", maxWidth: 240 }}>
       {[0.25, 0.5, 0.75, 1].map(ring => {
         const rp = keys.map((_, i) => {
           const a = -Math.PI / 2 + i * step;
           return `${cx + r * ring * Math.cos(a)},${cy + r * ring * Math.sin(a)}`;
         }).join(" ");
         return <polygon key={ring} points={rp} fill="none"
-          stroke={isLight ? (ring === 1 ? "#ccc8c0" : "#e0ddd8") : (ring === 1 ? "#2a2a2a" : "#1e1e1e")}
+          stroke={isLight ? (ring === 1 ? "#c8c3ba" : "#dedad3") : (ring === 1 ? "#2e2e2e" : "#232323")}
           strokeWidth="1" />;
       })}
       {[25, 50, 75].map(val => (
-        <text key={val} x={cx + 4} y={cy - r * (val / 100) + 4}
-          style={{ fill: isLight ? "#bbb" : "#333", fontSize: 7, fontFamily: "monospace" }}>{val}</text>
+        <text key={val} x={cx + 3} y={cy - r * (val / 100) + 4}
+          style={{ fill: isLight ? "#bbb" : "#2e2e2e", fontSize: 6, fontFamily: "monospace" }}>{val}</text>
       ))}
       {keys.map((_, i) => {
         const a = -Math.PI / 2 + i * step;
         return <line key={i} x1={cx} y1={cy}
           x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)}
-          stroke={isLight ? "#dedad3" : "#1e1e1e"} strokeWidth="1" />;
+          stroke={isLight ? "#d4cfc5" : "#222"} strokeWidth="1" />;
       })}
-      <polygon points={poly} fill="rgba(200,16,46,0.1)" stroke="#C8102E" strokeWidth="2" strokeLinejoin="round" />
-      {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="#C8102E" stroke={isLight ? "#f2f0eb" : "#0a0a0a"} strokeWidth="2" />)}
+      <defs>
+        <radialGradient id="radarFill" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#C8102E" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#C8102E" stopOpacity="0.04" />
+        </radialGradient>
+      </defs>
+      <polygon points={poly} fill="url(#radarFill)" stroke="#C8102E" strokeWidth="1.5" strokeLinejoin="round" />
+      {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#C8102E" stroke={isLight ? "#faf8f4" : "#0d0d0d"} strokeWidth="1.5" />)}
       {labels.map((label, i) => {
         const a = -Math.PI / 2 + i * step;
         return (
-          <text key={i} x={cx + (r + 26) * Math.cos(a)} y={cy + (r + 26) * Math.sin(a)}
+          <text key={i} x={cx + (r + 20) * Math.cos(a)} y={cy + (r + 20) * Math.sin(a)}
             textAnchor="middle" dominantBaseline="middle"
-            style={{ fill: isLight ? "#999" : "#555", fontSize: 9,
-              fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.1em", fontWeight: 700 }}>
+            style={{ fill: isLight ? "#7a7570" : "#555", fontSize: 8,
+              fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>
             {label}
           </text>
         );
@@ -149,6 +156,18 @@ function ScoreBar({ score }) {
       <div style={{ height: "100%", width: `${score}%`,
         background: `linear-gradient(90deg,${c}66,${c})`,
         borderRadius: 2, transition: "width 1.2s cubic-bezier(.4,0,.2,1)" }} />
+    <FavoritesDrawer
+        open={favsOpen}
+        onClose={() => setFavsOpen(false)}
+        currentResult={result}
+        currentInputs={{ talentName, talentType, brandName: brand.name }}
+        onLoad={(fav) => {
+          setResult(fav.result);
+          setTalentName(fav.inputs.talentName || fav.talentName);
+          setTalentType(fav.inputs.talentType || fav.talentType);
+          setMobileTab("results");
+        }}
+      />
     </div>
   );
 }
@@ -171,14 +190,16 @@ function Chip({ label, active, onClick, small }) {
   );
 }
 
-// ─── Input / Label styles (dynamic) ───────────────────────────────────────────
+// ─── Input / Label styles ────────────────────────────────────────────────────
 
-const getInputStyle = () => ({
+const INPUT_STYLE = {
   width: "100%", background: "var(--input-bg)", border: "1px solid var(--border)",
   borderRadius: "var(--radius-sm)", padding: "9px 12px",
   color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 13,
   outline: "none", transition: "border-color 0.2s",
-});
+};
+
+const getInputStyle = () => INPUT_STYLE;
 
 const LABEL_STYLE = {
   display: "block", fontFamily: "var(--font-display)", fontSize: 10,
@@ -244,7 +265,7 @@ function ProfileManager({ current, onLoad, onSave, onDelete }) {
               value={saveName}
               onChange={e => setSaveName(e.target.value)}
               placeholder={`Save as "${current.name || "Profile name"}"`}
-              style={{ ...getInputStyle(), fontSize: 12 }}
+              style={{ ...INPUT_STYLE, fontSize: 12 }}
               onKeyDown={e => e.key === "Enter" && save()}
             />
             <button onClick={save} style={{
@@ -294,13 +315,13 @@ function ProfileManager({ current, onLoad, onSave, onDelete }) {
 // ─── Brand Panel ──────────────────────────────────────────────────────────────
 
 function BrandPanel({ brand, onChange, savedFlash }) {
-  const inp = (field) => ({
+  const fieldProps = (field) => ({
     value: typeof brand[field] === "string" ? brand[field] : "",
     onChange: (e) => onChange(field, e.target.value),
-    style: getInputStyle(),
-    onFocus: e => e.target.style.borderColor = "var(--red-border)",
-    onBlur:  e => e.target.style.borderColor = "var(--border)",
+    style: INPUT_STYLE,
+
   });
+  const inp = fieldProps;
 
   const toggleMarket = (label) => {
     const cur = brand.markets || [];
@@ -331,7 +352,7 @@ function BrandPanel({ brand, onChange, savedFlash }) {
           <div>
             <label style={LABEL_STYLE}>Industry</label>
             <select value={brand.industry} onChange={e => onChange("industry", e.target.value)}
-              style={{ ...getInputStyle(), cursor: "pointer" }}>
+              style={{ ...INPUT_STYLE, cursor: "pointer" }}>
               <option value="">Select…</option>
               {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
@@ -368,7 +389,174 @@ function BrandPanel({ brand, onChange, savedFlash }) {
           <label style={LABEL_STYLE}>Additional Context</label>
           <textarea {...inp("context")}
             placeholder="Products, recent campaigns, positioning notes…"
-            rows={2} style={{ ...getInputStyle(), resize: "vertical", lineHeight: 1.55 }} />
+            rows={2} style={{ ...INPUT_STYLE, resize: "vertical", lineHeight: 1.55 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── Favorites Drawer ─────────────────────────────────────────────────────────
+
+function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }) {
+  const [favs, setFavs] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FAVORITES_KEY);
+      if (stored) setFavs(JSON.parse(stored));
+    } catch {}
+  }, [open]);
+
+  const saveCurrent = () => {
+    if (!currentResult) return;
+    const entry = {
+      id: Date.now(),
+      savedAt: new Date().toISOString(),
+      talentName: currentInputs.talentName,
+      talentType: currentInputs.talentType,
+      brandName: currentInputs.brandName,
+      verdict: currentResult.overall_verdict,
+      score: currentResult.overall_score,
+      dealHeadline: currentResult.deal_headline,
+      result: currentResult,
+      inputs: currentInputs,
+    };
+    const next = [entry, ...favs].slice(0, 50);
+    try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch {}
+    setFavs(next);
+  };
+
+  const remove = (id) => {
+    const next = favs.filter(f => f.id !== id);
+    try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch {}
+    setFavs(next);
+  };
+
+  const vcfgColor = (v) => {
+    const map = { "STRONG PASS": "#22c55e", "PASS": "#84cc16", "CONDITIONAL PASS": "#f59e0b", "BORDERLINE": "#f97316", "NO PASS": "#C8102E" };
+    return map[v] || "#888";
+  };
+
+  if (!open) return null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 200,
+      display: "flex", justifyContent: "flex-end",
+    }}>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} />
+
+      {/* Panel */}
+      <div style={{
+        position: "relative", width: 380, maxWidth: "95vw",
+        background: "var(--card)", borderLeft: "1px solid var(--border)",
+        height: "100vh", overflowY: "auto", zIndex: 1,
+        display: "flex", flexDirection: "column",
+        boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "20px 20px 16px", borderBottom: "1px solid var(--border)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: "var(--grad-header)", position: "sticky", top: 0, zIndex: 1,
+          backdropFilter: "blur(12px)",
+        }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, letterSpacing: "0.06em", color: "var(--text)" }}>
+              SAVED SEARCHES
+            </div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+              {favs.length} saved {favs.length === 1 ? "assessment" : "assessments"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--border)",
+            background: "var(--tag-bg)", cursor: "pointer", color: "var(--text2)",
+            fontFamily: "var(--font-display)", fontSize: 14, display: "flex",
+            alignItems: "center", justifyContent: "center",
+          }}>✕</button>
+        </div>
+
+        {/* Save current button */}
+        {currentResult && (
+          <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)" }}>
+            <button onClick={saveCurrent} style={{
+              width: "100%", padding: "10px 16px",
+              background: "var(--red-soft)", border: "1px solid var(--red-border)",
+              borderRadius: "var(--radius-sm)", color: "var(--red)",
+              fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700,
+              letterSpacing: "0.1em", cursor: "pointer", transition: "all 0.2s",
+            }}>
+              + SAVE CURRENT ASSESSMENT
+            </button>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)", marginTop: 6, textAlign: "center" }}>
+              {currentInputs.brandName} x {currentInputs.talentName}
+            </div>
+          </div>
+        )}
+
+        {/* List */}
+        <div style={{ flex: 1, padding: "12px 16px", display: "grid", gap: 8 }}>
+          {favs.length === 0 && (
+            <div style={{ padding: "40px 20px", textAlign: "center" }}>
+              <div style={{ fontSize: 28, opacity: 0.15, marginBottom: 12 }}>◎</div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 11, letterSpacing: "0.12em", color: "var(--muted)" }}>NO SAVED ASSESSMENTS</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", marginTop: 6, lineHeight: 1.55 }}>
+                Run an assessment then click Save to build your wishlist.
+              </p>
+            </div>
+          )}
+          {favs.map(fav => (
+            <div key={fav.id} style={{
+              background: "var(--tag-bg)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)", padding: "12px 14px",
+              transition: "border-color 0.15s",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color: "var(--text)", letterSpacing: "0.02em" }}>
+                    {fav.talentName}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
+                    {fav.brandName} · {fav.talentType}
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{
+                    fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600,
+                    color: vcfgColor(fav.verdict), lineHeight: 1,
+                  }}>{fav.score}</span>
+                  <button onClick={() => remove(fav.id)} style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--muted)", fontSize: 11, padding: "2px 4px",
+                    fontFamily: "var(--font-display)",
+                  }}>✕</button>
+                </div>
+              </div>
+              <div style={{
+                fontFamily: "var(--font-display)", fontSize: 9, fontWeight: 700,
+                letterSpacing: "0.08em", color: vcfgColor(fav.verdict), marginBottom: 6,
+              }}>{fav.verdict}</div>
+              <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text2)", lineHeight: 1.45, marginBottom: 8 }}>
+                "{fav.dealHeadline}"
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => { onLoad(fav); onClose(); }} style={{
+                  flex: 1, padding: "6px 10px",
+                  background: "var(--red-soft)", border: "1px solid var(--red-border)",
+                  borderRadius: 4, color: "var(--red)",
+                  fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.08em", cursor: "pointer",
+                }}>LOAD RESULTS</button>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--muted)", display: "flex", alignItems: "center" }}>
+                  {new Date(fav.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -395,6 +583,7 @@ export default function Home() {
   const [error, setError]           = useState("");
   const [copied, setCopied]         = useState(null);
   const [mobileTab, setMobileTab]   = useState("input"); // "input" | "results"
+  const [favsOpen, setFavsOpen]       = useState(false);
   const resultRef                   = useRef(null);
 
   // ── Load theme + brand ────────────────────────────────────────────────────
@@ -616,9 +805,7 @@ export default function Home() {
         <label style={LABEL_STYLE}>TALENT / PARTNER *</label>
         <input value={talentName} onChange={e => setTalentName(e.target.value)}
           placeholder="e.g. Sabrina Carpenter, LeBron James…"
-          style={getInputStyle()}
-          onFocus={e => e.target.style.borderColor = "var(--red-border)"}
-          onBlur={e => e.target.style.borderColor = "var(--border)"} />
+          style={INPUT_STYLE} />
       </div>
 
       {/* Type */}
@@ -659,7 +846,7 @@ export default function Home() {
         <label style={LABEL_STYLE}>NOTES</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Budget range, existing relationships, deal flags…"
-          rows={2} style={{ ...getInputStyle(), resize: "vertical", lineHeight: 1.55 }} />
+          rows={2} style={{ ...INPUT_STYLE, resize: "vertical", lineHeight: 1.55 }} />
       </div>
 
       {/* Score button */}
@@ -743,19 +930,21 @@ export default function Home() {
           <div style={{
             background: vcfg.bg, border: `1px solid ${vcfg.border}`,
             borderRadius: "var(--radius)", padding: "20px 24px",
+            backgroundImage: `linear-gradient(135deg, ${vcfg.bg} 0%, transparent 100%)`,
+            boxShadow: `0 1px 0 ${vcfg.border}, inset 0 1px 0 rgba(255,255,255,0.03)`,
           }}>
             <div className="verdict-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div className="verdict-stats" style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)", marginBottom: 3 }}>VERDICT</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 900, color: vcfg.color, letterSpacing: "0.03em", lineHeight: 1 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: vcfg.color, letterSpacing: "0.03em", lineHeight: 1 }}>
                     {result.overall_verdict}
                   </div>
                 </div>
                 <div style={{ width: 1, height: 36, background: "var(--border)" }} />
                 <div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)", marginBottom: 3 }}>SCORE</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 900, color: vcfg.color, lineHeight: 1 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 600, color: vcfg.color, lineHeight: 1 }}>
                     {result.overall_score}<span style={{ fontSize: 14, color: "var(--muted)", fontWeight: 400 }}>/100</span>
                   </div>
                 </div>
@@ -772,7 +961,7 @@ export default function Home() {
           </div>
 
           {/* ── Headline + Summary ───────────────────────────────────────── */}
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px 24px" }}>
+          <div style={{ background: "var(--grad-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "20px 24px", backgroundImage: "var(--grad-card)" }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, letterSpacing: "0.02em", color: "var(--text)", marginBottom: 10 }}>
               "{result.deal_headline}"
             </div>
@@ -810,7 +999,7 @@ export default function Home() {
                       <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.06em", color: "var(--muted)" }}>
                         {d.label.split(" ")[0].toUpperCase()}
                       </span>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 800, color: scoreColor(s) }}>{s}</span>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600, color: scoreColor(s) }}>{s}</span>
                     </div>
                   );
                 })}
@@ -826,7 +1015,7 @@ export default function Home() {
                   <div key={d.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "14px 16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)" }}>{d.icon} {d.label.toUpperCase()}</span>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: c, lineHeight: 1 }}>{dim.score}</span>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: c, lineHeight: 1 }}>{dim.score}</span>
                     </div>
                     <ScoreBar score={dim.score} />
                     <div style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700, color: "var(--text)", margin: "8px 0 5px", lineHeight: 1.3 }}>
@@ -892,7 +1081,7 @@ export default function Home() {
                 background: "var(--red)", display: "inline-block",
                 boxShadow: "0 0 10px rgba(200,16,46,0.5)",
               }} />
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 900, letterSpacing: "0.06em", color: "var(--text)" }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, letterSpacing: "0.06em", color: "var(--text)" }}>
                 ALLOY INDEX
               </span>
             </div>
@@ -907,6 +1096,17 @@ export default function Home() {
               <div>TAVILY RESEARCH</div>
               <div>GEMINI ANALYSIS</div>
             </div>
+            {/* Saved searches */}
+            <button onClick={() => setFavsOpen(true)} title="Saved searches" style={{
+              height: 36, padding: "0 14px", borderRadius: 18,
+              background: "var(--tag-bg)", border: "1px solid var(--border)",
+              cursor: "pointer", fontSize: 11, display: "flex", gap: 6,
+              alignItems: "center", justifyContent: "center", transition: "all 0.2s",
+              color: "var(--text2)", fontFamily: "var(--font-display)", fontWeight: 700,
+              letterSpacing: "0.08em",
+            }}>
+              ◎ SAVED
+            </button>
             {/* Theme toggle */}
             <button onClick={toggleTheme} title="Toggle light/dark" style={{
               width: 36, height: 36, borderRadius: "50%",
