@@ -583,7 +583,7 @@ export default function Home() {
   const [theme, setTheme]           = useState("dark");
   const [brand, setBrand]           = useState({ ...NIKE_DEFAULTS });
   const [savedFlash, setSavedFlash] = useState(false);
-  const [brandLoaded, setBLoaded]   = useState(false);
+  const [brandLoaded, setBLoaded]   = useState(true);
   const saveTimer                   = useRef(null);
   const flashTimer                  = useRef(null);
 
@@ -764,11 +764,7 @@ export default function Home() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  if (!brandLoaded) return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 28, height: 28, border: "2px solid var(--border2)", borderTopColor: "var(--red)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-    </div>
-  );
+  // brandLoaded always true - localStorage is synchronous
 
   const vcfg = result ? (VERDICT_CFG[result.overall_verdict] || VERDICT_CFG["BORDERLINE"]) : null;
   const isLight = theme === "light";
@@ -776,7 +772,7 @@ export default function Home() {
   const divider = <div style={{ height: 1, background: "var(--border)", margin: "20px 0" }} />;
 
   // Export bar (reused in both mobile bottom bar and desktop)
-  const ExportBar = () => result ? (
+  const exportBarJSX = result ? (
     <div className="export-bar" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
       {[
         { key: "copy",  icon: "⎘", label: "COPY",  done: "✓ COPIED"  },
@@ -803,7 +799,7 @@ export default function Home() {
   ) : null;
 
   // ── Left panel contents ───────────────────────────────────────────────────
-  const LeftPanel = () => (
+  const leftPanelJSX = (
     <div className="left-panel" style={{
       background: "var(--card)", border: "1px solid var(--border)",
       borderRadius: "var(--radius)", padding: 24,
@@ -899,7 +895,7 @@ export default function Home() {
   );
 
   // ── Results panel ─────────────────────────────────────────────────────────
-  const ResultsPanel = () => (
+  const resultsPanelJSX = (
     <div ref={resultRef}>
       {!result && !loading && (
         <div style={{
@@ -974,7 +970,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <ExportBar />
+              {exportBarJSX}
             </div>
           </div>
 
@@ -1166,12 +1162,12 @@ export default function Home() {
       }}>
         {/* Left */}
         <div className={`left-panel ${mobileTab === "results" ? "mobile-hide" : ""}`}>
-          <LeftPanel />
+          {leftPanelJSX}
         </div>
 
         {/* Right */}
         <div className={mobileTab === "brand" ? "mobile-hide" : ""}>
-          <ResultsPanel />
+          {resultsPanelJSX}
         </div>
       </div>
 
