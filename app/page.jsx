@@ -175,6 +175,82 @@ function AnimatedScore({ target, color, fontSize = 38, duration = 900 }) {
   );
 }
 
+
+// ─── Score Info Modal ─────────────────────────────────────────────────────────
+
+const SCORE_INFO = {
+  overall: {
+    title: "Overall Score",
+    desc: "A weighted composite of all 5 dimensions. 80–100 = strong strategic fit with manageable risk. 60–79 = solid fit with conditions. Below 60 = meaningful friction requiring mitigation.",
+    range: [
+      { label: "80–100 · STRONG PASS / PASS", color: "#22c55e", note: "Proceed — strong alignment" },
+      { label: "65–79 · CONDITIONAL PASS", color: "#f59e0b", note: "Proceed with guardrails" },
+      { label: "50–64 · BORDERLINE", color: "#f97316", note: "Significant conditions required" },
+      { label: "0–49 · NO PASS", color: "#C8102E", note: "Do not proceed without major changes" },
+    ]
+  },
+  cultural: { title: "Cultural Alignment", desc: "How well the talent's public persona, values, and cultural associations reinforce your brand identity. High scores mean the talent's image and story amplify your brand message organically." },
+  audience: { title: "Audience Demographics", desc: "Overlap between the talent's fanbase and your target consumer. Considers age, income, geography, and psychographic fit. High scores mean the talent reaches exactly who you're trying to reach." },
+  platform: { title: "Platform Reach", desc: "Total addressable reach across social, broadcast, press, and live. Considers follower counts, engagement rates, earned media value, and content virality potential." },
+  safety: { title: "Brand Safety", desc: "Risk assessment of controversies, past incidents, associations, and reputational exposure. High scores mean clean, predictable brand behavior with low litigation or PR risk." },
+  international: { title: "International Reach", desc: "Strength of the talent's profile in your key global markets. High scores mean genuine recognition and cultural relevance beyond their home market." },
+};
+
+function ScoreInfoModal({ dim, onClose }) {
+  const info = SCORE_INFO[dim] || SCORE_INFO.overall;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      onClick={onClose}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        position: "relative", background: "var(--card)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius)", padding: "24px 28px", maxWidth: 420, width: "100%",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+        animation: "fadeUp 0.2s ease",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, letterSpacing: "0.06em", color: "var(--text)" }}>
+            {info.title.toUpperCase()}
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 16, padding: "0 4px", fontFamily: "var(--font-display)" }}>✕</button>
+        </div>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text2)", lineHeight: 1.7, marginBottom: info.range ? 16 : 0 }}>
+          {info.desc}
+        </p>
+        {info.range && (
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.12em", color: "var(--muted)", marginBottom: 2 }}>VERDICT SCALE</div>
+            {info.range.map((r, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 3, height: 28, background: r.color, borderRadius: 2, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 700, color: r.color, letterSpacing: "0.04em" }}>{r.label}</div>
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)" }}>{r.note}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoBtn({ dim, onOpen }) {
+  return (
+    <button onClick={() => onOpen(dim)} style={{
+      width: 16, height: 16, borderRadius: "50%", border: "1px solid var(--border2)",
+      background: "var(--tag-bg)", color: "var(--muted)", cursor: "pointer",
+      fontFamily: "var(--font-body)", fontSize: 9, fontWeight: 700,
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0, transition: "all 0.15s", lineHeight: 1,
+    }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--red-border)"; e.currentTarget.style.color = "var(--red)"; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--muted)"; }}
+    >i</button>
+  );
+}
+
 // ─── Score Bar ────────────────────────────────────────────────────────────────
 
 function ScoreBar({ score }) {
@@ -598,6 +674,7 @@ export default function Home() {
   const [copied, setCopied]         = useState(null);
   const [mobileTab, setMobileTab]   = useState("brand"); // "brand" | "results"
   const [favsOpen, setFavsOpen]       = useState(false);
+  const [infoModal, setInfoModal]     = useState(null); // dim key or null
   const resultRef                   = useRef(null);
 
   // ── Load theme + brand ────────────────────────────────────────────────────
@@ -762,6 +839,33 @@ export default function Home() {
 
   const printPdf = () => window.print();
 
+  const downloadCsv = () => {
+    if (!result) return;
+    const rows = [
+      ["Brand", "Talent", "Type", "Date", "Verdict", "Overall Score", "Deal Type", "Deal Headline", "Exec Summary", "Activation", "Risk Flag"],
+      [brand.name, talentName, talentType, new Date().toLocaleDateString(), result.overall_verdict, result.overall_score, result.deal_type_recommendation, result.deal_headline, result.exec_summary, result.recommended_activation, result.risk_flag || ""],
+      [],
+      ["Dimension", "Score", "Headline", "Analysis", "Strengths", "Watchouts"],
+      ...DIMS.map(d => {
+        const dim = result.scores?.[d.key];
+        return dim ? [d.label, dim.score, dim.headline, dim.analysis, (dim.strengths||[]).join("; "), (dim.watchouts||[]).join("; ")] : [];
+      }),
+      [],
+      ["Ideal Markets", (result.ideal_markets||[]).join("; ")],
+      ["Comparable Deals", (result.comparable_deals||[]).join("; ")],
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const slug = `${brand.name}-${talentName}`.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    a.href = url; a.download = `alloy-${slug}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    setCopied("csv"); setTimeout(() => setCopied(null), 2000);
+  };
+
+
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   // brandLoaded always true - localStorage is synchronous
@@ -779,8 +883,9 @@ export default function Home() {
         { key: "txt",   icon: "↓", label: "TXT",   done: "✓ SAVED"   },
         { key: "email", icon: "✉", label: "EMAIL", done: "OPENED"    },
         { key: "pdf",   icon: "⎙", label: "PDF",   done: "PRINTING…" },
+        { key: "csv",   icon: "⬇", label: "CSV",   done: "✓ SAVED"   },
       ].map(({ key, icon, label, done }) => {
-        const fn = { copy: copyMemo, txt: downloadTxt, email: exportEmail, pdf: printPdf }[key];
+        const fn = { copy: copyMemo, txt: downloadTxt, email: exportEmail, pdf: printPdf, csv: downloadCsv }[key];
         const active = copied === key;
         return (
           <button key={key} onClick={fn} style={{
@@ -957,7 +1062,7 @@ export default function Home() {
                 </div>
                 <div style={{ width: 1, height: 36, background: "var(--border)" }} />
                 <div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)", marginBottom: 3 }}>SCORE</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)" }}>SCORE</span><InfoBtn dim="overall" onOpen={setInfoModal} /></div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 600, color: vcfg.color, lineHeight: 1 }}>
                     {result.overall_score}<span style={{ fontSize: 14, color: "var(--muted)", fontWeight: 400 }}>/100</span>
                   </div>
@@ -1028,7 +1133,7 @@ export default function Home() {
                 return (
                   <div key={d.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "14px 16px", animation: `fadeUp 0.4s ease both`, animationDelay: `${di * 80}ms` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)" }}>{d.icon} {d.label.toUpperCase()}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)" }}>{d.icon} {d.label.toUpperCase()}</span><InfoBtn dim={d.key} onOpen={setInfoModal} /></span>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: c, lineHeight: 1 }}>{dim.score}</span>
                     </div>
                     <ScoreBar score={dim.score} />
@@ -1170,6 +1275,8 @@ export default function Home() {
           {resultsPanelJSX}
         </div>
       </div>
+
+      {infoModal && <ScoreInfoModal dim={infoModal} onClose={() => setInfoModal(null)} />}
 
       <FavoritesDrawer
         open={favsOpen}

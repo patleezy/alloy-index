@@ -86,9 +86,16 @@ body::before {
   pointer-events: none;
 }
 
-#__next, main, .page-root {
+#__next, main, .page-root,
+body > div:first-of-type {
   position: relative;
   z-index: 1;
+}
+
+/* Ensure all direct content is above pseudo-element overlays */
+header, .main-grid, .mobile-tab-bar {
+  position: relative;
+  z-index: 2;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
