@@ -94,7 +94,7 @@ overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BOR
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: "application/json",
-            maxOutputTokens: 4000,
+            maxOutputTokens: 8192,
             temperature: 0.7,
           },
         }),
