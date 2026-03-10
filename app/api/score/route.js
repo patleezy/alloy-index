@@ -82,10 +82,28 @@ Return exactly this JSON structure with no markdown fences, no preamble, no extr
   },
   "comparable_deals": ["real comparable deal one", "real comparable deal two", "real comparable deal three"],
   "ideal_markets": ["market one", "market two", "market three"],
-  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc"
+  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc",
+  "controversy_flags": {
+    "risk_profile": "LOW | MEDIUM | HIGH | CRITICAL",
+    "risk_profile_rationale": "1-2 sentences explaining the overall risk profile",
+    "flags": [
+      {
+        "severity": "HIGH",
+        "category": "category label e.g. Hate Speech / Political Toxicity / Legal / Workplace / Past Scandal",
+        "title": "Short flag title",
+        "detail": "1-2 sentences with specifics — name the incident, statement, or behavior. Be direct and factual.",
+        "brand_impact": "1 sentence on specific brand damage risk",
+        "mitigations": ["mitigation one", "mitigation two"]
+      }
+    ],
+    "brand_risk_averse_note": "Specific advice for risk-averse brands in 1-2 sentences. If low risk, confirm that.",
+    "safe_to_proceed": true
+  }
 }
 
-overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS`;
+overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
+risk_profile must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL
+For controversy_flags.flags: include ALL known flags, no matter how old. If none exist, return an empty array. Never fabricate. For well-known talent with public controversies (e.g. Kanye West, Elon Musk), be comprehensive and specific.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout

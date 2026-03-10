@@ -179,6 +179,7 @@ textarea:focus {
   .left-panel { position: static !important; }
   .mobile-tab-bar { display: flex !important; }
   .mobile-hide { display: none !important; }
+  .radar-dim-grid { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width: 540px) {

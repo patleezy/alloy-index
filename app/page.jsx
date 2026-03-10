@@ -64,6 +64,20 @@ const DIMS = [
   { key: "international", label: "International Reach",   icon: "◆" },
 ];
 
+
+const RISK_PROFILE_CFG = {
+  LOW:      { color: "#22c55e", bg: "rgba(34,197,94,0.06)",    border: "rgba(34,197,94,0.2)",    label: "LOW RISK" },
+  MEDIUM:   { color: "#f59e0b", bg: "rgba(245,158,11,0.06)",   border: "rgba(245,158,11,0.2)",   label: "MEDIUM RISK" },
+  HIGH:     { color: "#f97316", bg: "rgba(249,115,22,0.07)",   border: "rgba(249,115,22,0.25)",  label: "HIGH RISK" },
+  CRITICAL: { color: "#C8102E", bg: "rgba(200,16,46,0.08)",    border: "rgba(200,16,46,0.3)",    label: "CRITICAL RISK" },
+};
+
+const SEV_CFG = {
+  LOW:    { color: "#22c55e", icon: "◎" },
+  MEDIUM: { color: "#f59e0b", icon: "⚠" },
+  HIGH:   { color: "#f97316", icon: "▲" },
+};
+
 const VERDICT_CFG = {
   "STRONG PASS":      { color: "#22c55e", bg: "rgba(34,197,94,0.07)",   border: "rgba(34,197,94,0.2)" },
   "PASS":             { color: "#84cc16", bg: "rgba(132,204,18,0.07)",  border: "rgba(132,204,18,0.2)" },
@@ -179,6 +193,16 @@ function AnimatedScore({ target, color, fontSize = 38, duration = 900 }) {
 // ─── Score Info Modal ─────────────────────────────────────────────────────────
 
 const SCORE_INFO = {
+  verdict: {
+    title: "How Verdicts Are Generated",
+    desc: "Scores are AI-generated — not a hard formula. Here's exactly what happens: (1) Tavily searches the web for live press, deals, and controversies about the talent. (2) That research is fed into Gemini 2.5 Flash alongside your brand profile. (3) Gemini applies brand partnership expertise from its training to reason across 5 dimensions and produce a scored analysis. Think of it as a structured opinion from a well-informed analyst — consistent and defensible, but not a Bloomberg terminal. Always validate with your own research and team.",
+    range: [
+      { label: "80–100 · STRONG PASS / PASS", color: "#22c55e", note: "Strong alignment — proceed" },
+      { label: "65–79 · CONDITIONAL PASS", color: "#f59e0b", note: "Solid fit with guardrails" },
+      { label: "50–64 · BORDERLINE", color: "#f97316", note: "Significant conditions required" },
+      { label: "0–49 · NO PASS", color: "#C8102E", note: "Do not proceed without major changes" },
+    ]
+  },
   overall: {
     title: "Overall Score",
     desc: "A weighted composite of all 5 dimensions. 80–100 = strong strategic fit with manageable risk. 60–79 = solid fit with conditions. Below 60 = meaningful friction requiring mitigation.",
@@ -852,6 +876,14 @@ export default function Home() {
       }),
       [],
       ["Ideal Markets", (result.ideal_markets||[]).join("; ")],
+      [],
+      ["CONTROVERSY FLAGS"],
+      ["Risk Profile", result.controversy_flags?.risk_profile || "N/A"],
+      ["Risk Profile Rationale", result.controversy_flags?.risk_profile_rationale || ""],
+      ["Safe to Proceed", result.controversy_flags?.safe_to_proceed ? "Yes" : "No"],
+      ["Brand Risk-Averse Note", result.controversy_flags?.brand_risk_averse_note || ""],
+      [],
+      ...(result.controversy_flags?.flags || []).map(f => [f.severity, f.category, f.title, f.detail, f.brand_impact, (f.mitigations||[]).join("; ")]),
       ["Comparable Deals", (result.comparable_deals||[]).join("; ")],
     ];
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -1055,7 +1087,7 @@ export default function Home() {
             <div className="verdict-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div className="verdict-stats" style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)", marginBottom: 3 }}>VERDICT</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)" }}>VERDICT</span><InfoBtn dim="verdict" onOpen={setInfoModal} /></div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: vcfg.color, letterSpacing: "0.03em", lineHeight: 1 }}>
                     {result.overall_verdict}
                   </div>
@@ -1170,6 +1202,107 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+
+          {/* ── Controversy Flags ────────────────────────────────────────── */}
+          {result.controversy_flags && (() => {
+            const cf = result.controversy_flags;
+            const rcfg = RISK_PROFILE_CFG[cf.risk_profile] || RISK_PROFILE_CFG.MEDIUM;
+            return (
+              <div style={{
+                background: rcfg.bg, border: `1px solid ${rcfg.border}`,
+                borderRadius: "var(--radius)", padding: "20px 24px",
+                boxShadow: cf.risk_profile === "CRITICAL" || cf.risk_profile === "HIGH"
+                  ? `0 0 24px ${rcfg.color}18` : "none",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)" }}>⚑ CONTROVERSY FLAGS</span>
+                    <span style={{ padding: "2px 10px", borderRadius: 20, background: rcfg.border, fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: rcfg.color }}>
+                      {rcfg.label}
+                    </span>
+                    {!cf.safe_to_proceed && (
+                      <span style={{ padding: "2px 10px", borderRadius: 20, background: "rgba(200,16,46,0.1)", border: "1px solid rgba(200,16,46,0.3)", fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#C8102E" }}>
+                        ⛔ DO NOT PROCEED
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: rcfg.color, fontStyle: "italic" }}>
+                    {cf.flags?.length || 0} flag{cf.flags?.length !== 1 ? "s" : ""} identified
+                  </div>
+                </div>
+
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text2)", lineHeight: 1.65, marginBottom: cf.flags?.length ? 16 : 8 }}>
+                  {cf.risk_profile_rationale}
+                </p>
+
+                {cf.flags?.length > 0 && (
+                  <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+                    {cf.flags.map((flag, fi) => {
+                      const sc = SEV_CFG[flag.severity] || SEV_CFG.MEDIUM;
+                      return (
+                        <div key={fi} style={{
+                          background: "var(--card)", border: `1px solid ${sc.color}28`,
+                          borderLeft: `3px solid ${sc.color}`,
+                          borderRadius: "var(--radius-sm)", padding: "12px 16px",
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                            <span style={{ fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, color: sc.color, letterSpacing: "0.04em" }}>
+                              {sc.icon} {flag.severity}
+                            </span>
+                            <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.08em", color: "var(--muted)", textTransform: "uppercase" }}>
+                              {flag.category}
+                            </span>
+                          </div>
+                          <div style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 5 }}>
+                            {flag.title}
+                          </div>
+                          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.6, marginBottom: 6 }}>
+                            {flag.detail}
+                          </p>
+                          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: sc.color, marginBottom: flag.mitigations?.length ? 6 : 0 }}>
+                            ⚡ Brand impact: {flag.brand_impact}
+                          </div>
+                          {flag.mitigations?.length > 0 && (
+                            <div style={{ marginTop: 4 }}>
+                              {flag.mitigations.map((m, mi) => (
+                                <div key={mi} style={{ fontSize: 10, color: "var(--muted)", fontFamily: "var(--font-body)", marginBottom: 2 }}>→ {m}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cf.flags?.length === 0 && (
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#22c55e", padding: "10px 14px", background: "rgba(34,197,94,0.06)", borderRadius: "var(--radius-sm)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                    ✓ No significant controversy flags identified for this talent.
+                  </div>
+                )}
+
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)", marginRight: 8 }}>RISK-AVERSE BRANDS:</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)" }}>{cf.brand_risk_averse_note}</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Disclaimer ───────────────────────────────────────────────── */}
+          <div style={{
+            padding: "14px 18px", borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border)", background: "transparent",
+            marginTop: 4,
+          }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted2)", flexShrink: 0, marginTop: 1 }}>ⓘ DISCLAIMER</span>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted2)", lineHeight: 1.65, margin: 0 }}>
+                This tool is for <strong style={{ color: "var(--muted)", fontWeight: 600 }}>educational and directional purposes only</strong>. Scores and analysis are AI-generated and do not constitute professional marketing, legal, or financial advice. Assessments reflect publicly available information at time of query and may be incomplete or inaccurate. Always conduct independent research, consult qualified advisors, and exercise your own judgment before making partnership decisions.
+              </p>
             </div>
           </div>
         </div>
