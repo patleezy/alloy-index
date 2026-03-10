@@ -84,29 +84,35 @@ Return exactly this JSON structure with no markdown fences, no preamble, no extr
   "ideal_markets": ["market one", "market two", "market three"],
   "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc",
   "controversy_flags": {
-    "risk_profile": "LOW | MEDIUM | HIGH | CRITICAL",
+    "risk_profile": "LOW",
     "risk_profile_rationale": "1-2 sentences explaining the overall risk profile",
     "flags": [
       {
         "severity": "HIGH",
-        "category": "category label e.g. Hate Speech / Political Toxicity / Legal / Workplace / Past Scandal",
+        "category": "Past Scandal",
         "title": "Short flag title",
-        "detail": "1-2 sentences with specifics — name the incident, statement, or behavior. Be direct and factual.",
+        "detail": "1-2 sentences with specifics. Be direct and factual.",
         "brand_impact": "1 sentence on specific brand damage risk",
         "mitigations": ["mitigation one", "mitigation two"]
       }
     ],
-    "brand_risk_averse_note": "Specific advice for risk-averse brands in 1-2 sentences. If low risk, confirm that.",
+    "brand_risk_averse_note": "Specific advice for risk-averse brands in 1-2 sentences.",
     "safe_to_proceed": true
   }
 }
 
-overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
-risk_profile must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL
-For controversy_flags.flags: include ALL known flags, no matter how old. If none exist, return an empty array. Never fabricate. For well-known talent with public controversies (e.g. Kanye West, Elon Musk), be comprehensive and specific.`;
+STRICT RULES:
+- overall_verdict must be exactly one of these strings: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
+- risk_profile must be exactly one of these strings: LOW, MEDIUM, HIGH, CRITICAL
+- severity on each flag must be exactly one of: LOW, MEDIUM, HIGH
+- safe_to_proceed must be boolean true or false
+- flags array must exist even if empty
+- If no controversy flags exist, return an empty array for flags
+- Never fabricate incidents. Only include verified public record controversies.
+- For talent with well-known controversies (e.g. Kanye West antisemitic statements, Elon Musk political controversies), be comprehensive and specific.`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+    const timeout = setTimeout(() => controller.abort(), 28000); // 28s timeout (Vercel limit is 30s)
 
     let res;
     try {
@@ -156,7 +162,10 @@ For controversy_flags.flags: include ALL known flags, no matter how old. If none
       return Response.json({ error: "Failed to parse scoring response. Try again." }, { status: 500 });
     }
   } catch (err) {
-    console.error("Score route error:", err);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Score route error:", err.name, err.message);
+    if (err.name === "AbortError") {
+      return Response.json({ error: "Analysis timed out — Gemini took too long. Please try again." }, { status: 504 });
+    }
+    return Response.json({ error: `Server error: ${err.message}` }, { status: 500 });
   }
 }
