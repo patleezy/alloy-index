@@ -315,13 +315,11 @@ function ProfileManager({ current, onLoad, onSave, onDelete }) {
 // ─── Brand Panel ──────────────────────────────────────────────────────────────
 
 function BrandPanel({ brand, onChange, savedFlash }) {
-  const fieldProps = (field) => ({
-    value: typeof brand[field] === "string" ? brand[field] : "",
-    onChange: (e) => onChange(field, e.target.value),
-    style: INPUT_STYLE,
-
-  });
-  const inp = fieldProps;
+  const onChangeName     = useCallback((e) => onChange("name",     e.target.value), [onChange]);
+  const onChangeIndustry = useCallback((e) => onChange("industry", e.target.value), [onChange]);
+  const onChangeValues   = useCallback((e) => onChange("values",   e.target.value), [onChange]);
+  const onChangeAudience = useCallback((e) => onChange("audience", e.target.value), [onChange]);
+  const onChangeContext  = useCallback((e) => onChange("context",  e.target.value), [onChange]);
 
   const toggleMarket = (label) => {
     const cur = brand.markets || [];
@@ -347,11 +345,11 @@ function BrandPanel({ brand, onChange, savedFlash }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
             <label style={LABEL_STYLE}>Brand Name *</label>
-            <input {...inp("name")} placeholder="e.g. Nike" />
+            <input value={brand.name || ""} onChange={onChangeName} style={INPUT_STYLE} placeholder="e.g. Nike" />
           </div>
           <div>
             <label style={LABEL_STYLE}>Industry</label>
-            <select value={brand.industry} onChange={e => onChange("industry", e.target.value)}
+            <select value={brand.industry || ""} onChange={onChangeIndustry}
               style={{ ...INPUT_STYLE, cursor: "pointer" }}>
               <option value="">Select…</option>
               {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
@@ -361,12 +359,12 @@ function BrandPanel({ brand, onChange, savedFlash }) {
 
         <div>
           <label style={LABEL_STYLE}>Brand Values</label>
-          <input {...inp("values")} placeholder="e.g. Inspiring, innovative, performance-driven" />
+          <input value={brand.values || ""} onChange={onChangeValues} style={INPUT_STYLE} placeholder="e.g. Inspiring, innovative, performance-driven" />
         </div>
 
         <div>
           <label style={LABEL_STYLE}>Target Audience</label>
-          <input {...inp("audience")} placeholder="e.g. Gen Z, Millennials, athletes" />
+          <input value={brand.audience || ""} onChange={onChangeAudience} style={INPUT_STYLE} placeholder="e.g. Gen Z, Millennials, athletes" />
         </div>
 
         <div>
@@ -387,7 +385,7 @@ function BrandPanel({ brand, onChange, savedFlash }) {
 
         <div>
           <label style={LABEL_STYLE}>Additional Context</label>
-          <textarea {...inp("context")}
+          <textarea value={brand.context || ""} onChange={onChangeContext}
             placeholder="Products, recent campaigns, positioning notes…"
             rows={2} style={{ ...INPUT_STYLE, resize: "vertical", lineHeight: 1.55 }} />
         </div>
@@ -610,19 +608,19 @@ export default function Home() {
 
   // ── Auto-save brand ───────────────────────────────────────────────────────
   const handleBrandChange = useCallback((field, value) => {
-    setBrand(prev => {
-      const next = { ...prev, [field]: value };
-      clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
+    setBrand(prev => ({ ...prev, [field]: value }));
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      setBrand(current => {
         try {
-          localStorage.setItem("alloy_current_brand", JSON.stringify(next));
+          localStorage.setItem("alloy_current_brand", JSON.stringify(current));
           clearTimeout(flashTimer.current);
           setSavedFlash(true);
           flashTimer.current = setTimeout(() => setSavedFlash(false), 2000);
         } catch {}
-      }, 500);
-      return next;
-    });
+        return current;
+      });
+    }, 600);
   }, []);
 
   // ── Toggle campaigns ──────────────────────────────────────────────────────
@@ -750,7 +748,11 @@ export default function Home() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  if (!brandLoaded) return null;
+  if (!brandLoaded) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 28, height: 28, border: "2px solid var(--border2)", borderTopColor: "var(--red)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+    </div>
+  );
 
   const vcfg = result ? (VERDICT_CFG[result.overall_verdict] || VERDICT_CFG["BORDERLINE"]) : null;
   const isLight = theme === "light";
