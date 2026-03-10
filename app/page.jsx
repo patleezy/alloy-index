@@ -184,18 +184,6 @@ function ScoreBar({ score }) {
       <div style={{ height: "100%", width: `${score}%`,
         background: `linear-gradient(90deg,${c}66,${c})`,
         borderRadius: 2, transition: "width 1.2s cubic-bezier(.4,0,.2,1)" }} />
-    <FavoritesDrawer
-        open={favsOpen}
-        onClose={() => setFavsOpen(false)}
-        currentResult={result}
-        currentInputs={{ talentName, talentType, brandName: brand.name }}
-        onLoad={(fav) => {
-          setResult(fav.result);
-          setTalentName(fav.inputs.talentName || fav.talentName);
-          setTalentType(fav.inputs.talentType || fav.talentType);
-          setMobileTab("results");
-        }}
-      />
     </div>
   );
 }
@@ -1186,6 +1174,19 @@ export default function Home() {
           <ResultsPanel />
         </div>
       </div>
+
+      <FavoritesDrawer
+        open={favsOpen}
+        onClose={() => setFavsOpen(false)}
+        currentResult={result}
+        currentInputs={{ talentName, talentType, brandName: brand.name }}
+        onLoad={(fav) => {
+          setResult(fav.result);
+          setTalentName(fav.inputs.talentName || fav.talentName);
+          setTalentType(fav.inputs.talentType || fav.talentType);
+          setMobileTab("results");
+        }}
+      />
     </div>
   );
 }

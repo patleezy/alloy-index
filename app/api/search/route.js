@@ -1,3 +1,5 @@
+export const maxDuration = 30;
+
 export async function POST(request) {
   try {
     const { query } = await request.json();

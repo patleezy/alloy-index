@@ -1,3 +1,5 @@
+export const maxDuration = 30;
+
 export async function POST(request) {
   try {
     const { talentName, talentType, campaigns, brandProfile, notes, researchContext } = await request.json();
@@ -85,21 +87,30 @@ Return exactly this JSON structure with no markdown fences, no preamble, no extr
 
 overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            maxOutputTokens: 8192,
-            temperature: 0.7,
-          },
-        }),
-      }
-    );
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+    let res;
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              maxOutputTokens: 8192,
+              temperature: 0.7,
+            },
+          }),
+        }
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       const errText = await res.text();
