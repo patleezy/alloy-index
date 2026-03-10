@@ -147,6 +147,34 @@ function RadarChart({ scores, theme }) {
   );
 }
 
+
+// ─── Animated Score ───────────────────────────────────────────────────────────
+
+function AnimatedScore({ target, color, fontSize = 38, duration = 900 }) {
+  const [display, setDisplay] = useState(0);
+  const frameRef = useRef(null);
+
+  useEffect(() => {
+    const start = performance.now();
+    const animate = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * target));
+      if (progress < 1) frameRef.current = requestAnimationFrame(animate);
+    };
+    frameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [target, duration]);
+
+  return (
+    <span style={{ fontSize, fontWeight: 600, color, lineHeight: 1, fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums" }}>
+      {display}
+    </span>
+  );
+}
+
 // ─── Score Bar ────────────────────────────────────────────────────────────────
 
 function ScoreBar({ score }) {
@@ -580,7 +608,7 @@ export default function Home() {
   const [result, setResult]         = useState(null);
   const [error, setError]           = useState("");
   const [copied, setCopied]         = useState(null);
-  const [mobileTab, setMobileTab]   = useState("input"); // "input" | "results"
+  const [mobileTab, setMobileTab]   = useState("brand"); // "brand" | "results"
   const [favsOpen, setFavsOpen]       = useState(false);
   const resultRef                   = useRef(null);
 
@@ -933,7 +961,7 @@ export default function Home() {
             background: vcfg.bg, border: `1px solid ${vcfg.border}`,
             borderRadius: "var(--radius)", padding: "20px 24px",
             backgroundImage: `linear-gradient(135deg, ${vcfg.bg} 0%, transparent 100%)`,
-            boxShadow: `0 1px 0 ${vcfg.border}, inset 0 1px 0 rgba(255,255,255,0.03)`,
+            boxShadow: `0 0 0 1px ${vcfg.border}, 0 0 32px ${vcfg.color}22, inset 0 1px 0 rgba(255,255,255,0.03)`,
           }}>
             <div className="verdict-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div className="verdict-stats" style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -1010,11 +1038,11 @@ export default function Home() {
 
             {/* Dimension cards */}
             <div className="dim-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start" }}>
-              {DIMS.map(d => {
+              {DIMS.map((d, di) => {
                 const dim = result.scores?.[d.key]; if (!dim) return null;
                 const c = scoreColor(dim.score);
                 return (
-                  <div key={d.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "14px 16px" }}>
+                  <div key={d.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "14px 16px", animation: `fadeUp 0.4s ease both`, animationDelay: `${di * 80}ms` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)" }}>{d.icon} {d.label.toUpperCase()}</span>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 600, color: c, lineHeight: 1 }}>{dim.score}</span>
@@ -1129,7 +1157,7 @@ export default function Home() {
         background: "var(--card)", borderBottom: "1px solid var(--border)",
         display: "flex",
       }}>
-        {["input","results"].map(tab => (
+        {["brand","results"].map(tab => (
           <button key={tab} onClick={() => setMobileTab(tab)} style={{
             flex: 1, padding: "12px", border: "none", cursor: "pointer",
             background: mobileTab === tab ? "var(--red-soft)" : "transparent",
@@ -1138,7 +1166,7 @@ export default function Home() {
             fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700,
             letterSpacing: "0.1em", transition: "all 0.2s",
           }}>
-            {tab === "input" ? "◈ INPUTS" : `◉ RESULTS${result ? ` · ${result.overall_score}` : ""}`}
+            {tab === "brand" ? "✦ BRAND" : `◉ RESULTS${result ? ` · ${result.overall_score}` : ""}`}
           </button>
         ))}
       </div>
@@ -1154,7 +1182,7 @@ export default function Home() {
         </div>
 
         {/* Right */}
-        <div className={mobileTab === "input" ? "mobile-hide" : ""}>
+        <div className={mobileTab === "brand" ? "mobile-hide" : ""}>
           <ResultsPanel />
         </div>
       </div>
