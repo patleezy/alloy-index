@@ -1,3 +1,34 @@
+// Retry helper — retries once on 503 or timeout before failing
+async function geminiWithRetry(url, body, timeoutMs = 9000) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify(body),
+      });
+      clearTimeout(timer);
+      if ((res.status === 503 || res.status === 429) && attempt === 1) {
+        console.warn(`Gemini ${res.status} on attempt 1 — retrying in 1.5s...`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === "AbortError" && attempt === 1) {
+        console.warn("Gemini timeout on attempt 1 — retrying...");
+        await new Promise(r => setTimeout(r, 500));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export const maxDuration = 10;
 
 export async function POST(request) {
@@ -49,30 +80,17 @@ STRICT RULES:
 - flags must be an array (empty array if no flags)
 - If talent is genuinely low risk, say so confidently`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000);
-
-    let res;
-    try {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              maxOutputTokens: 2048,
-              temperature: 0.3,
-            },
-          }),
-        }
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
+    const res = await geminiWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 2048,
+          temperature: 0.3,
+        },
+      }
+    );
 
     if (!res.ok) {
       const errText = await res.text();

@@ -805,7 +805,16 @@ export default function Home() {
       setMobileTab("results");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      const msg = err.message || "";
+      if (msg.includes("503") || msg.includes("overloaded") || msg.includes("busy")) {
+        setError("Gemini is temporarily busy — please try again in a moment.");
+      } else if (msg.includes("timed out") || msg.includes("504")) {
+        setError("Analysis took too long — please try again. It usually works on the second attempt.");
+      } else if (msg.includes("Search failed")) {
+        setError("Live research failed — check your Tavily API key or try again.");
+      } else {
+        setError(msg || "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false); setPhase("");
     }
