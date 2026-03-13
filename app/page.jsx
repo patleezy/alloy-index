@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 const PROFILES_KEY  = "alloy_profiles";
 const THEME_KEY     = "alloy_theme";
 const FAVORITES_KEY = "alloy_favorites";
+const HISTORY_KEY   = "alloy_history";
 
 const NIKE_DEFAULTS = {
   name: "Nike",
@@ -86,10 +87,72 @@ const VERDICT_CFG = {
   "NO PASS":          { color: "#C8102E", bg: "rgba(200,16,46,0.07)",   border: "rgba(200,16,46,0.2)" },
 };
 
+const INDUSTRY_PROFILES = {
+  "Consumer Electronics": {
+    name: "Apple",
+    values: "Innovation, simplicity, privacy, premium design, human creativity",
+    audience: "Tech enthusiasts, creatives, professionals, students, Gen Z and Millennials, Apple ecosystem loyalists",
+    context: "Think Different. World's most valuable consumer tech brand. Key products: iPhone, Mac, iPad, AirPods, Apple Watch. Deep investment in creative culture, music, film, and sports storytelling.",
+  },
+  "Audio / Music Tech": {
+    name: "Beats",
+    values: "Authentic self-expression, premium sound, cultural credibility, sport and music intersection",
+    audience: "Music fans, athletes, Gen Z, Millennials, sneaker and streetwear culture, creatives",
+    context: "Beats. The cultural intersection of music, sport, and style. Key products: Studio Pro, Solo 4, Powerbeats Pro 2, Beats Pill. Heavy investment in athlete and artist partnerships, cultural moments, and premium audio positioning under Apple.",
+  },
+  "Sportswear / Athletic": {
+    name: "Nike",
+    values: "Inspiring, innovative, authentic, performance-driven, inclusive",
+    audience: "Athletes, Gen Z, Millennials, fitness enthusiasts, sneaker culture",
+    context: "Just Do It. World's leading athletic footwear and apparel brand. Key products: Air Max, Jordan, React. Heavy investment in athlete storytelling and cultural moments.",
+  },
+  "Fashion / Apparel": {
+    name: "Abercrombie & Fitch",
+    values: "Confidence, inclusivity, self-expression, modern American style, quality",
+    audience: "Gen Z, Millennials, 18-30 demographic, college culture, fashion-forward consumers",
+    context: "Abercrombie & Fitch. Reinvented American fashion brand with a successful Gen Z pivot away from its controversial 2000s era. Key categories: denim, casual wear, occasion dressing. Heavy investment in body inclusivity, diverse casting, and social-first marketing.",
+  },
+  "Beauty / Personal Care": {
+    name: "Glossier",
+    values: "Effortless beauty, community-driven, skin first, authenticity, real people",
+    audience: "Millennial and Gen Z women, beauty enthusiasts, skincare-first consumers, community-driven shoppers",
+    context: "Glossier. The original D2C beauty brand built from a blog. Key products: Boy Brow, Cloud Paint, Balm Dotcom, Futuredew. Community and UGC-led marketing, minimal aesthetic, strong cult following. Recently expanding wholesale after years direct-only.",
+  },
+  "Food & Beverage": {
+    name: "PepsiCo",
+    values: "Positive choices, sustainability, fun, cultural relevance, diversity",
+    audience: "Broad mass market, Gen Z and Millennials for flagship brands, athletes and health-conscious consumers for Gatorade and Quaker",
+    context: "PepsiCo. Global food and beverage portfolio including Pepsi, Gatorade, Lay's, Doritos, Quaker. Major investor in music and sports sponsorships, Super Bowl advertising, and pop culture moments. Increasingly focused on health and sustainability positioning.",
+  },
+  "Automotive": {
+    name: "Volvo",
+    values: "Safety, sustainability, Scandinavian design, innovation, responsible luxury",
+    audience: "Affluent professionals, families, environmentally conscious consumers, design-forward buyers, 35-55 demographic",
+    context: "Volvo Cars. Premium Swedish automotive brand synonymous with safety and clean design. Committed to full electrification by 2030. Key models: XC90, XC60, EX90. Strong positioning around life, family, and responsible ownership.",
+  },
+  "Financial Services": {
+    name: "Chase",
+    values: "Empowerment, trust, financial confidence, access, community investment",
+    audience: "Mass affluent consumers, Millennials and Gen Z building wealth, small business owners, sports and travel enthusiasts",
+    context: "Chase. America's largest consumer bank and part of JPMorgan Chase. Key products: Sapphire credit cards, Chase Freedom, business banking. Major sports sponsorship portfolio including NBA, NFL, MLB venues. Strong investment in cultural and community programming.",
+  },
+  "Gaming": {
+    name: "PlayStation",
+    values: "Play has no limits, immersive storytelling, innovation, community, pushing boundaries",
+    audience: "Core gamers 18-35, Gen Z, esports fans, entertainment seekers, global gaming community",
+    context: "PlayStation by Sony. The world's leading gaming platform. Key products: PS5, PS5 Pro, PlayStation Network, PlayStation Studios exclusives including God of War, Spider-Man, and The Last of Us. Deep investment in narrative-driven games, esports, and gaming culture. Strong entertainment crossover with film and TV.",
+  },
+  "Streaming / Media": {
+    name: "Disney",
+    values: "Storytelling, imagination, family, magic, optimism, inclusivity",
+    audience: "Families, children, nostalgic Millennials, franchise superfans, global audiences",
+    context: "The Walt Disney Company. World's most powerful entertainment brand. Key properties: Disney+, Marvel, Star Wars, Pixar, ESPN, ABC. Unmatched IP portfolio driving theme parks, merchandise, and streaming. Strong focus on franchise storytelling, family entertainment, and emotional brand connection.",
+  },
+};
+
 const INDUSTRIES = [
-  "Consumer Electronics", "Audio / Music Tech", "Sportswear / Athletic",
-  "Fashion / Apparel", "Beauty / Personal Care", "Food & Beverage",
-  "Automotive", "Financial Services", "Gaming", "Streaming / Media", "Other",
+  ...Object.keys(INDUSTRY_PROFILES),
+  "Other",
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -410,36 +473,65 @@ function ProfileManager({ current, onLoad, onSave, onDelete }) {
             }}>SAVE</button>
           </div>
 
-          {/* Saved list */}
-          {Object.entries(profiles).length === 0 && (
-            <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-              No saved profiles yet.
-            </p>
-          )}
-          {Object.entries(profiles).map(([name, data]) => (
-            <div key={name} style={{
+          {/* Example profiles */}
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 4 }}>
+            EXAMPLES — select industry to auto-fill
+          </div>
+          {Object.entries(INDUSTRY_PROFILES).map(([industry, data]) => (
+            <div key={industry} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "7px 10px", background: "var(--card)", border: "1px solid var(--border)",
               borderRadius: "var(--radius-sm)",
             }}>
               <div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{name}</div>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)" }}>{data.industry || "No industry"}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{data.name}</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)" }}>{industry}</div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => { onLoad(data); setOpen(false); }} style={{
-                  padding: "4px 10px", background: "var(--red-soft)", border: "1px solid var(--red-border)",
-                  borderRadius: 4, color: "var(--red)", fontFamily: "var(--font-display)",
-                  fontSize: 10, fontWeight: 700, cursor: "pointer",
-                }}>LOAD</button>
-                <button onClick={() => del(name)} style={{
-                  padding: "4px 8px", background: "none", border: "1px solid var(--border)",
-                  borderRadius: 4, color: "var(--muted)", fontFamily: "var(--font-display)",
-                  fontSize: 10, cursor: "pointer",
-                }}>✕</button>
-              </div>
+              <button onClick={() => { onLoad({ ...data, industry, markets: [] }); setOpen(false); }} style={{
+                padding: "4px 10px", background: "var(--red-soft)", border: "1px solid var(--red-border)",
+                borderRadius: 4, color: "var(--red)", fontFamily: "var(--font-display)",
+                fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+              }}>LOAD</button>
             </div>
           ))}
+
+          {/* Custom saved profiles */}
+          {Object.keys(profiles).length > 0 && (
+            <>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)", marginTop: 8, marginBottom: 4 }}>
+                CUSTOM
+              </div>
+              {Object.entries(profiles).map(([name, data]) => (
+                <div key={name} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "7px 10px", background: "var(--card)", border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                }}>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{name}</div>
+                    <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)" }}>{data.industry || "No industry"}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => { onLoad(data); setOpen(false); }} style={{
+                      padding: "4px 10px", background: "var(--red-soft)", border: "1px solid var(--red-border)",
+                      borderRadius: 4, color: "var(--red)", fontFamily: "var(--font-display)",
+                      fontSize: 10, fontWeight: 700, cursor: "pointer",
+                    }}>LOAD</button>
+                    <button onClick={() => del(name)} style={{
+                      padding: "4px 8px", background: "none", border: "1px solid var(--border)",
+                      borderRadius: 4, color: "var(--muted)", fontFamily: "var(--font-display)",
+                      fontSize: 10, cursor: "pointer",
+                    }}>✕</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+          {Object.keys(profiles).length === 0 && (
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", fontStyle: "italic", marginTop: 8 }}>
+              No custom profiles yet — fill in your brand details and hit SAVE above.
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -450,7 +542,18 @@ function ProfileManager({ current, onLoad, onSave, onDelete }) {
 
 function BrandPanel({ brand, onChange, savedFlash }) {
   const onChangeName     = useCallback((e) => onChange("name",     e.target.value), [onChange]);
-  const onChangeIndustry = useCallback((e) => onChange("industry", e.target.value), [onChange]);
+  const onChangeIndustry = useCallback((e) => {
+    const industry = e.target.value;
+    onChange("industry", industry);
+    // Auto-fill brand profile if a preset exists for this industry
+    if (industry && INDUSTRY_PROFILES[industry]) {
+      const preset = INDUSTRY_PROFILES[industry];
+      onChange("name",     preset.name);
+      onChange("values",   preset.values);
+      onChange("audience", preset.audience);
+      onChange("context",  preset.context);
+    }
+  }, [onChange]);
   const onChangeValues   = useCallback((e) => onChange("values",   e.target.value), [onChange]);
   const onChangeAudience = useCallback((e) => onChange("audience", e.target.value), [onChange]);
   const onChangeContext  = useCallback((e) => onChange("context",  e.target.value), [onChange]);
@@ -532,12 +635,19 @@ function BrandPanel({ brand, onChange, savedFlash }) {
 // ─── Favorites Drawer ─────────────────────────────────────────────────────────
 
 function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }) {
-  const [favs, setFavs] = useState([]);
+  const [favs, setFavs]       = useState([]);
+  const [history, setHistory] = useState([]);
+  const [drawerTab, setDrawerTab] = useState("saved"); // "saved" | "recent"
 
   useEffect(() => {
+    if (!open) return;
     try {
       const stored = localStorage.getItem(FAVORITES_KEY);
       if (stored) setFavs(JSON.parse(stored));
+    } catch {}
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored) setHistory(JSON.parse(stored));
     } catch {}
   }, [open]);
 
@@ -596,13 +706,19 @@ function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }
           background: "var(--grad-header)", position: "sticky", top: 0, zIndex: 1,
           backdropFilter: "blur(12px)",
         }}>
-          <div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, letterSpacing: "0.06em", color: "var(--text)" }}>
-              SAVED SEARCHES
-            </div>
-            <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-              {favs.length} saved {favs.length === 1 ? "assessment" : "assessments"}
-            </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[
+              { key: "saved", label: `◎ SAVED (${favs.length})` },
+              { key: "recent", label: `⏱ RECENT (${history.length})` },
+            ].map(t => (
+              <button key={t.key} onClick={() => setDrawerTab(t.key)} style={{
+                padding: "6px 12px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "none",
+                background: drawerTab === t.key ? "var(--red-soft)" : "var(--tag-bg)",
+                borderBottom: `2px solid ${drawerTab === t.key ? "var(--red)" : "transparent"}`,
+                color: drawerTab === t.key ? "var(--red)" : "var(--muted)",
+                fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+              }}>{t.label}</button>
+            ))}
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--border)",
@@ -632,7 +748,54 @@ function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }
 
         {/* List */}
         <div style={{ flex: 1, padding: "12px 16px", display: "grid", gap: 8 }}>
-          {favs.length === 0 && (
+
+          {/* ── Recent tab ─── */}
+          {drawerTab === "recent" && history.length === 0 && (
+            <div style={{ padding: "40px 20px", textAlign: "center" }}>
+              <div style={{ fontSize: 28, opacity: 0.15, marginBottom: 12 }}>⏱</div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 11, letterSpacing: "0.12em", color: "var(--muted)" }}>NO RECENT SEARCHES</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", marginTop: 6, lineHeight: 1.55 }}>
+                Completed assessments appear here automatically.
+              </p>
+            </div>
+          )}
+          {drawerTab === "recent" && history.map(entry => (
+            <div key={entry.id} style={{
+              background: "var(--tag-bg)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)", padding: "12px 14px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color: "var(--text)", letterSpacing: "0.02em" }}>
+                    {entry.talentName}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
+                    {entry.brandName} · {entry.talentType}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: vcfgColor(entry.verdict) }}>
+                    {entry.score}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 8, color: "var(--muted)", letterSpacing: "0.06em" }}>
+                    {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: vcfgColor(entry.verdict), marginBottom: 8 }}>
+                {entry.verdict}
+              </div>
+              <button onClick={() => { onLoad(entry); onClose(); }} style={{
+                width: "100%", padding: "7px", background: "var(--red-soft)",
+                border: "1px solid var(--red-border)", borderRadius: 4,
+                color: "var(--red)", fontFamily: "var(--font-display)",
+                fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em",
+              }}>LOAD RESULT</button>
+            </div>
+          ))}
+
+          {/* ── Saved tab ─── */}
+          {drawerTab === "saved" && favs.length === 0 && (
             <div style={{ padding: "40px 20px", textAlign: "center" }}>
               <div style={{ fontSize: 28, opacity: 0.15, marginBottom: 12 }}>◎</div>
               <p style={{ fontFamily: "var(--font-display)", fontSize: 11, letterSpacing: "0.12em", color: "var(--muted)" }}>NO SAVED ASSESSMENTS</p>
@@ -641,7 +804,8 @@ function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }
               </p>
             </div>
           )}
-          {favs.map(fav => (
+          {drawerTab === "saved" && favs.length === 0 && false && (
+          {drawerTab === "saved" && favs.map(fav => (
             <div key={fav.id} style={{
               background: "var(--tag-bg)", border: "1px solid var(--border)",
               borderRadius: "var(--radius-sm)", padding: "12px 14px",
@@ -851,6 +1015,27 @@ export default function Home() {
       };
 
       setResult(merged);
+
+      // Auto-save to search history (cap at 20)
+      try {
+        const histRaw = localStorage.getItem(HISTORY_KEY);
+        const hist = histRaw ? JSON.parse(histRaw) : [];
+        const entry = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          talentName,
+          talentType,
+          brandName: brand.name,
+          industry: brand.industry,
+          verdict: merged.overall_verdict,
+          score: merged.overall_score,
+          result: merged,
+          inputs: { talentName, talentType, brand: { ...brand } },
+        };
+        const next = [entry, ...hist].slice(0, 20);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      } catch {}
+
       setMobileTab("results");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (err) {
@@ -1611,10 +1796,11 @@ export default function Home() {
         onClose={() => setFavsOpen(false)}
         currentResult={result}
         currentInputs={{ talentName, talentType, brandName: brand.name }}
-        onLoad={(fav) => {
-          setResult(fav.result);
-          setTalentName(fav.inputs.talentName || fav.talentName);
-          setTalentType(fav.inputs.talentType || fav.talentType);
+        onLoad={(entry) => {
+          setResult(entry.result);
+          setTalentName(entry.inputs?.talentName || entry.talentName || "");
+          setTalentType(entry.inputs?.talentType || entry.talentType || "");
+          if (entry.inputs?.brand) setBrand({ ...EMPTY_BRAND, ...entry.inputs.brand });
           setMobileTab("results");
         }}
       />
