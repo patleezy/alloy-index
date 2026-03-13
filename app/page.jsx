@@ -195,13 +195,23 @@ function AnimatedScore({ target, color, fontSize = 38, duration = 900 }) {
 const SCORE_INFO = {
   verdict: {
     title: "How Verdicts Are Generated",
-    desc: "Scores are AI-generated — not a hard formula. Here's exactly what happens: (1) Tavily searches the web for live press, deals, and controversies about the talent. (2) That research is fed into Gemini 2.5 Flash alongside your brand profile. (3) Gemini applies brand partnership expertise from its training to reason across 5 dimensions and produce a scored analysis. Think of it as a structured opinion from a well-informed analyst — consistent and defensible, but not a Bloomberg terminal. Always validate with your own research and team.",
+    desc: "Scores are AI-generated — not a hard formula. Tavily pulls live web research on the talent, which is fed into Gemini alongside your brand profile. Gemini applies brand partnership expertise to reason across 5 dimensions. Think of it as a structured opinion from a well-informed analyst — always validate with your own team.",
     range: [
       { label: "80–100 · STRONG PASS / PASS", color: "#22c55e", note: "Strong alignment — proceed" },
       { label: "65–79 · CONDITIONAL PASS", color: "#f59e0b", note: "Solid fit with guardrails" },
       { label: "50–64 · BORDERLINE", color: "#f97316", note: "Significant conditions required" },
       { label: "0–49 · NO PASS", color: "#C8102E", note: "Do not proceed without major changes" },
     ]
+  },
+  roster: {
+    title: "Roster vs. Active Promotion",
+    desc: "Not all DO NOT PROCEED or PAUSE situations mean terminating a partnership. Brands sometimes maintain a talent on their sponsored roster without active promotion — keeping the contractual relationship intact while pausing campaigns until a legal or reputational situation resolves.",
+    range: [
+      { label: "PROCEED", color: "#22c55e", note: "Active campaign — safe to run" },
+      { label: "PAUSE & MONITOR", color: "#f59e0b", note: "Maintain roster/contract, suspend active promotion. Reassess when situation resolves." },
+      { label: "DO NOT PROCEED", color: "#C8102E", note: "Exit or do not enter — risk outweighs the relationship value" },
+    ],
+    examples: "Nike kept Kobe Bryant on roster during his 2003 Colorado case without active promotion, then resumed. Tiger Woods' sponsors paused campaigns after his 2009 incident while maintaining contracts. These decisions are strategic, not binary."
   },
   overall: {
     title: "Overall Score",
@@ -242,8 +252,10 @@ function ScoreInfoModal({ dim, onClose }) {
           {info.desc}
         </p>
         {info.range && (
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.12em", color: "var(--muted)", marginBottom: 2 }}>VERDICT SCALE</div>
+          <div style={{ display: "grid", gap: 8, marginBottom: info.examples ? 14 : 0 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.12em", color: "var(--muted)", marginBottom: 2 }}>
+              {info.title === "Roster vs. Active Promotion" ? "DECISION FRAMEWORK" : "VERDICT SCALE"}
+            </div>
             {info.range.map((r, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 3, height: 28, background: r.color, borderRadius: 2, flexShrink: 0 }} />
@@ -253,6 +265,12 @@ function ScoreInfoModal({ dim, onClose }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {info.examples && (
+          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", marginTop: 4 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 5 }}>PRECEDENTS</div>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.65, margin: 0 }}>{info.examples}</p>
           </div>
         )}
       </div>
@@ -796,9 +814,40 @@ export default function Home() {
       }
 
       // Merge controversy into result
+      const baseResult = scoreData.result;
+      const rec = controversyFlags?.recommendation || "PROCEED";
+
+      // Apply score + verdict cap if PAUSE or DO_NOT_PROCEED
+      let cappedScore = baseResult.overall_score;
+      let cappedVerdict = baseResult.overall_verdict;
+      let scoreWasCapped = false;
+      const originalScore = baseResult.overall_score;
+
+      if (rec === "DO_NOT_PROCEED" || rec === "PAUSE_AND_MONITOR") {
+        const cap = 64; // Top of BORDERLINE
+        if (cappedScore > cap) {
+          cappedScore = cap;
+          scoreWasCapped = true;
+        }
+        // Cap verdict to CONDITIONAL PASS at most
+        const verdictOrder = ["STRONG PASS", "PASS", "CONDITIONAL PASS", "BORDERLINE", "NO PASS"];
+        const currentIdx = verdictOrder.indexOf(cappedVerdict);
+        const capIdx = verdictOrder.indexOf("CONDITIONAL PASS");
+        if (currentIdx < capIdx) {
+          cappedVerdict = "CONDITIONAL PASS";
+          scoreWasCapped = true;
+        }
+      }
+
       const merged = {
-        ...scoreData.result,
-        controversy_flags: controversyFlags,
+        ...baseResult,
+        overall_score: cappedScore,
+        overall_verdict: cappedVerdict,
+        score_was_capped: scoreWasCapped,
+        original_score: originalScore,
+        controversy_flags: controversyFlags
+          ? { ...controversyFlags, recommendation: rec }
+          : null,
       };
 
       setResult(merged);
@@ -1123,6 +1172,31 @@ export default function Home() {
         ) : "RUN ASSESSMENT"}
       </button>
 
+      {/* Mobile loading banner — visible on brand tab while results tab is hidden */}
+      {loading && (
+        <div style={{
+          marginTop: 12, padding: "12px 16px",
+          background: "rgba(200,16,46,0.06)", border: "1px solid rgba(200,16,46,0.15)",
+          borderRadius: "var(--radius-sm)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ width: 12, height: 12, border: "2px solid rgba(200,16,46,0.3)",
+            borderTopColor: "var(--red)", borderRadius: "50%", display: "inline-block", flexShrink: 0,
+            animation: "spin 0.7s linear infinite" }} />
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 700,
+              letterSpacing: "0.1em", color: "var(--red)", marginBottom: 2 }}>
+              {phase === "searching" ? "RESEARCHING TALENT" : "SCORING + RISK ANALYSIS"}
+            </div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
+              {phase === "searching"
+                ? `Pulling live intel on ${talentName}…`
+                : "Running parallel analysis — this takes ~10s…"}
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div style={{ marginTop: 12, padding: "10px 14px",
           background: "rgba(200,16,46,0.07)", border: "1px solid rgba(200,16,46,0.2)",
@@ -1201,6 +1275,11 @@ export default function Home() {
                   <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 600, color: vcfg.color, lineHeight: 1 }}>
                     {result.overall_score}<span style={{ fontSize: 14, color: "var(--muted)", fontWeight: 400 }}>/100</span>
                   </div>
+                  {result.score_was_capped && (
+                    <div style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "#f59e0b", marginTop: 2 }}>
+                      ↓ adjusted from {result.original_score}
+                    </div>
+                  )}
                 </div>
                 <div style={{ width: 1, height: 36, background: "var(--border)" }} />
                 <div>
@@ -1228,9 +1307,14 @@ export default function Home() {
                 <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text2)", lineHeight: 1.55 }}>{result.recommended_activation}</div>
               </div>
               {result.risk_flag && (
-                <div style={{ padding: "8px 14px", background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)", borderRadius: "var(--radius-sm)", flexShrink: 0 }}>
+                <div style={{
+                  padding: "8px 14px", background: "rgba(249,115,22,0.07)",
+                  border: "1px solid rgba(249,115,22,0.2)", borderRadius: "var(--radius-sm)",
+                  width: "100%", boxSizing: "border-box",
+                }}>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.12em", color: "#f97316", marginRight: 6 }}>⚠ RISK</span>
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#c2782f" }}>{result.risk_flag}</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "#c2782f",
+                    wordBreak: "break-word", whiteSpace: "normal" }}>{result.risk_flag}</span>
                 </div>
               )}
             </div>
@@ -1326,11 +1410,17 @@ export default function Home() {
                     <span style={{ padding: "2px 10px", borderRadius: 20, background: rcfg.border, fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: rcfg.color }}>
                       {rcfg.label}
                     </span>
-                    {!cf.safe_to_proceed && (
+                    {cf.recommendation === "PAUSE_AND_MONITOR" && (
+                      <span style={{ padding: "2px 10px", borderRadius: 20, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#f59e0b" }}>
+                        ⏸ PAUSE & MONITOR
+                      </span>
+                    )}
+                    {cf.recommendation === "DO_NOT_PROCEED" && (
                       <span style={{ padding: "2px 10px", borderRadius: 20, background: "rgba(200,16,46,0.1)", border: "1px solid rgba(200,16,46,0.3)", fontFamily: "var(--font-display)", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#C8102E" }}>
                         ⛔ DO NOT PROCEED
                       </span>
                     )}
+                    <InfoBtn dim="roster" onOpen={setInfoModal} />
                   </div>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: rcfg.color, fontStyle: "italic" }}>
                     {cf.flags?.length || 0} flag{cf.flags?.length !== 1 ? "s" : ""} identified
@@ -1398,13 +1488,15 @@ export default function Home() {
           {/* ── Disclaimer ───────────────────────────────────────────────── */}
           <div style={{
             padding: "14px 18px", borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border)", background: "transparent",
+            border: "1px solid var(--border)",
+            borderLeft: "3px solid var(--red-border)",
+            background: "rgba(255,255,255,0.02)",
             marginTop: 4,
           }}>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted2)", flexShrink: 0, marginTop: 1 }}>ⓘ DISCLAIMER</span>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted2)", lineHeight: 1.65, margin: 0 }}>
-                This tool is for <strong style={{ color: "var(--muted)", fontWeight: 600 }}>educational and directional purposes only</strong>. Scores and analysis are AI-generated and do not constitute professional marketing, legal, or financial advice. Assessments reflect publicly available information at time of query and may be incomplete or inaccurate. Always conduct independent research, consult qualified advisors, and exercise your own judgment before making partnership decisions.
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--text2)", flexShrink: 0, marginTop: 1 }}>ⓘ DISCLAIMER</span>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.7, margin: 0 }}>
+                This tool is for <strong style={{ color: "var(--text)", fontWeight: 600 }}>educational and directional purposes only</strong>. Scores and analysis are AI-generated and do not constitute professional marketing, legal, or financial advice. Assessments reflect publicly available information at time of query and may be incomplete or inaccurate. Always conduct independent research, consult qualified advisors, and exercise your own judgment before making partnership decisions.
               </p>
             </div>
           </div>

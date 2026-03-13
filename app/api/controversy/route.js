@@ -70,13 +70,16 @@ Return ONLY this JSON, no markdown, no preamble:
     }
   ],
   "brand_risk_averse_note": "Specific advice for risk-averse brands in 1-2 sentences.",
-  "safe_to_proceed": true
+  "recommendation": "PROCEED"
 }
 
 STRICT RULES:
 - risk_profile must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL
 - severity must be exactly one of: LOW, MEDIUM, HIGH
-- safe_to_proceed must be boolean true or false
+- recommendation must be exactly one of: PROCEED, PAUSE_AND_MONITOR, DO_NOT_PROCEED
+- PROCEED = low risk, active campaign fine
+- PAUSE_AND_MONITOR = maintain roster/contract but suspend active promotion until situation resolves (e.g. ongoing legal case, recent controversy under review)
+- DO_NOT_PROCEED = risk too high, do not enter or exit partnership
 - flags must be an array (empty array if no flags)
 - If talent is genuinely low risk, say so confidently`;
 
