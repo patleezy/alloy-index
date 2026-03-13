@@ -804,7 +804,6 @@ function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }
               </p>
             </div>
           )}
-          {drawerTab === "saved" && favs.length === 0 && false && (
           {drawerTab === "saved" && favs.map(fav => (
             <div key={fav.id} style={{
               background: "var(--tag-bg)", border: "1px solid var(--border)",
