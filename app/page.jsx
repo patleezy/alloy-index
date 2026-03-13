@@ -751,6 +751,7 @@ export default function Home() {
     if (!canScore) return;
     setLoading(true); setResult(null); setError("");
     try {
+      // ── Phase 1: Tavily web research ──────────────────────────────────────
       setPhase("searching");
       const searchRes = await fetch("/api/search", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -766,20 +767,41 @@ export default function Home() {
         ...(searchData.results || []).map((r, i) => `[${i+1}] ${r.title}\n${r.content?.slice(0,300)}`),
       ].filter(Boolean).join("\n\n");
 
+      // ── Phase 2: Score + Controversy in parallel ───────────────────────────
       setPhase("scoring");
       const marketsStr = Array.isArray(brand.markets) ? brand.markets.join(", ") : brand.markets;
-      const scoreRes = await fetch("/api/score", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          talentName, talentType, campaigns, notes,
-          brandProfile: { ...brand, markets: marketsStr },
-          researchContext,
+      const sharedPayload = { talentName, talentType, brandProfile: { ...brand, markets: marketsStr }, researchContext };
+
+      const [scoreRes, controversyRes] = await Promise.all([
+        fetch("/api/score", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...sharedPayload, campaigns, notes }),
         }),
-      });
+        fetch("/api/controversy", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sharedPayload),
+        }),
+      ]);
+
       const scoreData = await scoreRes.json();
       if (!scoreRes.ok) throw new Error(scoreData.error || "Scoring failed");
 
-      setResult(scoreData.result);
+      // Controversy is non-blocking — if it fails, degrade gracefully
+      let controversyFlags = null;
+      if (controversyRes.ok) {
+        const controversyData = await controversyRes.json();
+        controversyFlags = controversyData.result || null;
+      } else {
+        console.warn("Controversy analysis failed — proceeding without flags");
+      }
+
+      // Merge controversy into result
+      const merged = {
+        ...scoreData.result,
+        controversy_flags: controversyFlags,
+      };
+
+      setResult(merged);
       setMobileTab("results");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (err) {
@@ -1135,12 +1157,12 @@ export default function Home() {
           <div style={{ textAlign: "center" }}>
             <p style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: "0.14em",
               color: "var(--text2)", marginBottom: 6 }}>
-              {phase === "searching" ? "RESEARCHING TALENT" : "SCORING PARTNERSHIP FIT"}
+              {phase === "searching" ? "RESEARCHING TALENT" : "SCORING + RISK ANALYSIS"}
             </p>
             <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
               {phase === "searching"
                 ? `Pulling live intel on ${talentName}…`
-                : "Synthesizing research into scored analysis…"}
+                : "Running scoring & controversy analysis in parallel…"}
             </p>
           </div>
         </div>

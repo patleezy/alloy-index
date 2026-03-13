@@ -1,4 +1,4 @@
-export const maxDuration = 30;
+export const maxDuration = 10;
 
 export async function POST(request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request) {
     const campaignList = Array.isArray(campaigns) ? campaigns.join(", ") : campaigns || "General";
     const marketsStr = Array.isArray(brandProfile.markets) ? brandProfile.markets.join(", ") : brandProfile.markets || "Not specified";
 
-    const prompt = `You are a senior brand partnerships analyst at ${brandProfile.name}. Evaluate talent and brand deals for strategic fit, cultural resonance, and commercial potential.
+    const prompt = `You are a senior brand partnerships analyst at ${brandProfile.name}. Evaluate this partnership for strategic fit, cultural resonance, and commercial potential.
 
 BRAND PROFILE:
 - Brand: ${brandProfile.name}
@@ -30,89 +30,35 @@ PARTNERSHIP BEING EVALUATED:
 - Campaign Context: ${campaignList}
 ${notes ? `- Notes: ${notes}` : ""}
 
-LIVE RESEARCH (from web search, use this to inform your analysis):
+LIVE RESEARCH:
 ${researchContext || "No live research available. Use your training knowledge."}
 
-Score this partnership across 5 dimensions from 0 to 100. Be opinionated, specific, and reference the live research where useful. Never be generic.
+Score across 5 dimensions 0-100. Be specific, cite real facts. Never be generic.
 
-Return exactly this JSON structure with no markdown fences, no preamble, no extra text:
+Return ONLY this JSON, no markdown, no preamble:
 {
   "overall_verdict": "STRONG PASS",
   "overall_score": 85,
-  "exec_summary": "2-3 sentence CMO-ready summary, specific and actionable",
-  "deal_headline": "8 words max punchy framing",
-  "recommended_activation": "1 sentence on how to activate",
+  "exec_summary": "2-3 sentence CMO-ready summary",
+  "deal_headline": "8 words max",
+  "recommended_activation": "1 sentence",
   "risk_flag": "single most important risk or null",
   "scores": {
-    "cultural": {
-      "score": 80,
-      "headline": "5 to 8 word headline",
-      "analysis": "2-3 sentences citing real known facts about this talent",
-      "strengths": ["strength one", "strength two"],
-      "watchouts": ["watchout one"]
-    },
-    "audience": {
-      "score": 80,
-      "headline": "5 to 8 word headline",
-      "analysis": "2-3 sentences",
-      "strengths": ["strength one", "strength two"],
-      "watchouts": ["watchout one"]
-    },
-    "platform": {
-      "score": 80,
-      "headline": "5 to 8 word headline",
-      "analysis": "2-3 sentences with follower or reach estimates if known",
-      "strengths": ["strength one", "strength two"],
-      "watchouts": ["watchout one"]
-    },
-    "safety": {
-      "score": 80,
-      "headline": "5 to 8 word headline",
-      "analysis": "2-3 sentences, be direct about controversies or risks",
-      "strengths": ["strength one"],
-      "watchouts": ["watchout one", "watchout two"]
-    },
-    "international": {
-      "score": 80,
-      "headline": "5 to 8 word headline",
-      "analysis": "2-3 sentences naming specific strong and weak markets",
-      "strengths": ["strength one", "strength two"],
-      "watchouts": ["watchout one"]
-    }
+    "cultural": { "score": 80, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
+    "audience": { "score": 80, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
+    "platform": { "score": 80, "headline": "5-8 words", "analysis": "2-3 sentences with reach estimates", "strengths": ["s1","s2"], "watchouts": ["w1"] },
+    "safety":   { "score": 80, "headline": "5-8 words", "analysis": "2-3 sentences on risk", "strengths": ["s1"], "watchouts": ["w1","w2"] },
+    "international": { "score": 80, "headline": "5-8 words", "analysis": "2-3 sentences naming markets", "strengths": ["s1","s2"], "watchouts": ["w1"] }
   },
-  "comparable_deals": ["real comparable deal one", "real comparable deal two", "real comparable deal three"],
-  "ideal_markets": ["market one", "market two", "market three"],
-  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc",
-  "controversy_flags": {
-    "risk_profile": "LOW",
-    "risk_profile_rationale": "1-2 sentences explaining the overall risk profile",
-    "flags": [
-      {
-        "severity": "HIGH",
-        "category": "Past Scandal",
-        "title": "Short flag title",
-        "detail": "1-2 sentences with specifics. Be direct and factual.",
-        "brand_impact": "1 sentence on specific brand damage risk",
-        "mitigations": ["mitigation one", "mitigation two"]
-      }
-    ],
-    "brand_risk_averse_note": "Specific advice for risk-averse brands in 1-2 sentences.",
-    "safe_to_proceed": true
-  }
+  "comparable_deals": ["deal1","deal2","deal3"],
+  "ideal_markets": ["market1","market2","market3"],
+  "deal_type_recommendation": "Endorsement or Ambassador or Content Series etc"
 }
 
-STRICT RULES:
-- overall_verdict must be exactly one of these strings: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
-- risk_profile must be exactly one of these strings: LOW, MEDIUM, HIGH, CRITICAL
-- severity on each flag must be exactly one of: LOW, MEDIUM, HIGH
-- safe_to_proceed must be boolean true or false
-- flags array must exist even if empty
-- If no controversy flags exist, return an empty array for flags
-- Never fabricate incidents. Only include verified public record controversies.
-- For talent with well-known controversies (e.g. Kanye West antisemitic statements, Elon Musk political controversies), be comprehensive and specific.`;
+RULES: overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 28000); // 28s timeout (Vercel limit is 30s)
+    const timeout = setTimeout(() => controller.abort(), 9000);
 
     let res;
     try {
@@ -126,7 +72,7 @@ STRICT RULES:
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               responseMimeType: "application/json",
-              maxOutputTokens: 8192,
+              maxOutputTokens: 4096,
               temperature: 0.7,
             },
           }),
@@ -138,7 +84,7 @@ STRICT RULES:
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("Gemini error:", res.status, errText);
+      console.error("Gemini score error:", res.status, errText);
       return Response.json({ error: `Gemini API failed (${res.status})` }, { status: 502 });
     }
 
@@ -150,21 +96,19 @@ STRICT RULES:
       return Response.json({ error: "Empty response from Gemini. Try again." }, { status: 500 });
     }
 
-    // Strip any accidental fences (responseMimeType should prevent this, but belt-and-suspenders)
     const cleaned = rawText.replace(/```json|```/g, "").trim();
 
     try {
       const parsed = JSON.parse(cleaned);
       return Response.json({ result: parsed });
     } catch (parseErr) {
-      console.error("JSON parse failed at position:", parseErr.message);
-      console.error("Raw (first 500):", rawText.slice(0, 500));
+      console.error("Score JSON parse failed:", parseErr.message, rawText.slice(0, 300));
       return Response.json({ error: "Failed to parse scoring response. Try again." }, { status: 500 });
     }
   } catch (err) {
     console.error("Score route error:", err.name, err.message);
     if (err.name === "AbortError") {
-      return Response.json({ error: "Analysis timed out — Gemini took too long. Please try again." }, { status: 504 });
+      return Response.json({ error: "Scoring timed out. Please try again." }, { status: 504 });
     }
     return Response.json({ error: `Server error: ${err.message}` }, { status: 500 });
   }
