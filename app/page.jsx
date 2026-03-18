@@ -274,11 +274,11 @@ const SCORE_INFO = {
       { label: "PAUSE & MONITOR", color: "#f59e0b", note: "Maintain roster/contract, suspend active promotion. Reassess when situation resolves." },
       { label: "DO NOT PROCEED", color: "#C8102E", note: "Exit or do not enter — risk outweighs the relationship value" },
     ],
-    examples: "Nike kept Kobe Bryant on roster during his 2003 Colorado case without active promotion, then resumed. Tiger Woods' sponsors paused campaigns after his 2009 incident while maintaining contracts. These decisions are strategic, not binary."
+    examples: "Nike kept Kobe Bryant on roster during his 2003 Colorado case without active promotion, then resumed. Tiger Woods' sponsors paused campaigns after his 2009 incident while maintaining contracts. These decisions are strategic, not binary. The calculus changes for criminal convictions for violent or sexual crimes, documented hate speech, or conduct so publicly condemned that no major brand has maintained an active partnership. In those cases — a conviction like Jonathan Majors', antisemitic rhetoric like Kanye West's, or federal indictments like Diddy's — maintaining even a quiet roster presence is not viable for most brands. That is when DO NOT PROCEED applies."
   },
   overall: {
     title: "Overall Score",
-    desc: "A weighted composite of all 5 dimensions. 80–100 = strong strategic fit with manageable risk. 60–79 = solid fit with conditions. Below 60 = meaningful friction requiring mitigation.",
+    desc: "A weighted composite of all 5 dimensions. 80–100 = strong strategic fit with manageable risk. 60–79 = solid fit with conditions. Below 60 = meaningful friction requiring mitigation. A score of 100 is theoretically possible but doesn't exist in practice — every real partnership carries some degree of audience mismatch, platform risk, or unpredictability. If you see a score above 95, treat it as a signal to look harder, not a green light to stop looking.",
     range: [
       { label: "80–100 · STRONG PASS / PASS", color: "#22c55e", note: "Proceed — strong alignment" },
       { label: "65–79 · CONDITIONAL PASS", color: "#f59e0b", note: "Proceed with guardrails" },
@@ -986,13 +986,22 @@ export default function Home() {
       let scoreWasCapped = false;
       const originalScore = baseResult.overall_score;
 
-      if (rec === "DO_NOT_PROCEED" || rec === "PAUSE_AND_MONITOR") {
-        const cap = 64; // Top of BORDERLINE
+      if (rec === "DO_NOT_PROCEED") {
+        // Hard fail — criminal convictions, hate speech, categorically disqualifying conduct
+        const cap = 49; // Top of NO PASS range
         if (cappedScore > cap) {
           cappedScore = cap;
           scoreWasCapped = true;
         }
-        // Cap verdict to CONDITIONAL PASS at most
+        cappedVerdict = "NO PASS";
+        scoreWasCapped = true;
+      } else if (rec === "PAUSE_AND_MONITOR") {
+        // Maintain roster, suspend active promotion — cap at CONDITIONAL PASS
+        const cap = 64;
+        if (cappedScore > cap) {
+          cappedScore = cap;
+          scoreWasCapped = true;
+        }
         const verdictOrder = ["STRONG PASS", "PASS", "CONDITIONAL PASS", "BORDERLINE", "NO PASS"];
         const currentIdx = verdictOrder.indexOf(cappedVerdict);
         const capIdx = verdictOrder.indexOf("CONDITIONAL PASS");
@@ -1680,7 +1689,7 @@ export default function Home() {
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--text2)", flexShrink: 0, marginTop: 1 }}>ⓘ DISCLAIMER</span>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.7, margin: 0 }}>
-                This tool is for <strong style={{ color: "var(--text)", fontWeight: 600 }}>educational and directional purposes only</strong>. Scores and analysis are AI-generated and do not constitute professional marketing, legal, or financial advice. Assessments reflect publicly available information at time of query and may be incomplete or inaccurate. Always conduct independent research, consult qualified advisors, and exercise your own judgment before making partnership decisions.
+                This tool is for <strong style={{ color: "var(--text)", fontWeight: 600 }}>educational and directional purposes only</strong>. Scores and analysis are AI-generated and do not constitute professional marketing, legal, or financial advice. Assessments reflect publicly available information at time of query and may be incomplete or inaccurate. Always conduct independent research, consult qualified advisors, and exercise your own judgment before making partnership decisions. <strong style={{ color: "var(--text)", fontWeight: 600 }}>This tool is not a substitute for common sense and good judgment.</strong> If something feels wrong, it probably is.
               </p>
             </div>
           </div>

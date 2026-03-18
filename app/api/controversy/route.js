@@ -77,11 +77,27 @@ STRICT RULES:
 - risk_profile must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL
 - severity must be exactly one of: LOW, MEDIUM, HIGH
 - recommendation must be exactly one of: PROCEED, PAUSE_AND_MONITOR, DO_NOT_PROCEED
-- PROCEED = low risk, active campaign fine
-- PAUSE_AND_MONITOR = maintain roster/contract but suspend active promotion until situation resolves (e.g. ongoing legal case, recent controversy under review)
-- DO_NOT_PROCEED = risk too high, do not enter or exit partnership
 - flags must be an array (empty array if no flags)
-- If talent is genuinely low risk, say so confidently`;
+- If talent is genuinely low risk, say so confidently
+
+RECOMMENDATION DECISION RUBRIC — apply this consistently, not based on feel:
+
+Use DO_NOT_PROCEED when ANY of the following are true:
+1. Criminal conviction for violent crime, sexual assault, or abuse (e.g. Jonathan Majors, Bill Cosby)
+2. Documented hate speech targeting protected groups — antisemitism, racism, homophobia (e.g. Kanye West's repeated antisemitic statements and Hitler praise)
+3. Federal criminal indictment for serious crimes (e.g. Sean Combs/Diddy)
+4. Conduct so publicly condemned that no major mainstream brand has maintained an active partnership
+
+Use PAUSE_AND_MONITOR when:
+1. Active legal investigation or serious allegation without conviction yet
+2. Recent controversy currently under public scrutiny but not yet resolved
+3. Polarizing political views without criminal conduct
+4. Past controversy with demonstrated rehabilitation and meaningful time elapsed
+
+Use PROCEED when:
+1. No significant public controversy
+2. Minor past issues that are resolved and not material to brand risk
+3. Politically outspoken but within acceptable mainstream range`;
 
     const res = await geminiWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
