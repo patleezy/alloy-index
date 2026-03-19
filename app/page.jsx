@@ -1001,35 +1001,40 @@ export default function Home() {
       const baseResult = scoreData.result;
       const rec = controversyFlags?.recommendation || "PROCEED";
 
-      // Apply score + verdict cap if PAUSE or DO_NOT_PROCEED
+      // Apply score + verdict caps
       let cappedScore = baseResult.overall_score;
       let cappedVerdict = baseResult.overall_verdict;
       let scoreWasCapped = false;
       const originalScore = baseResult.overall_score;
+      const verdictOrder = ["STRONG PASS", "PASS", "CONDITIONAL PASS", "BORDERLINE", "NO PASS"];
 
+      const capVerdict = (maxVerdict) => {
+        const currentIdx = verdictOrder.indexOf(cappedVerdict);
+        const capIdx = verdictOrder.indexOf(maxVerdict);
+        if (currentIdx < capIdx) { cappedVerdict = maxVerdict; scoreWasCapped = true; }
+      };
+      const capScore = (max) => {
+        if (cappedScore > max) { cappedScore = max; scoreWasCapped = true; }
+      };
+
+      // ── Controversy caps ────────────────────────────────────────
       if (rec === "DO_NOT_PROCEED") {
-        // Hard fail — criminal convictions, hate speech, categorically disqualifying conduct
-        const cap = 49; // Top of NO PASS range
-        if (cappedScore > cap) {
-          cappedScore = cap;
-          scoreWasCapped = true;
-        }
+        capScore(49);
         cappedVerdict = "NO PASS";
         scoreWasCapped = true;
       } else if (rec === "PAUSE_AND_MONITOR") {
-        // Maintain roster, suspend active promotion — cap at CONDITIONAL PASS
-        const cap = 64;
-        if (cappedScore > cap) {
-          cappedScore = cap;
-          scoreWasCapped = true;
-        }
-        const verdictOrder = ["STRONG PASS", "PASS", "CONDITIONAL PASS", "BORDERLINE", "NO PASS"];
-        const currentIdx = verdictOrder.indexOf(cappedVerdict);
-        const capIdx = verdictOrder.indexOf("CONDITIONAL PASS");
-        if (currentIdx < capIdx) {
-          cappedVerdict = "CONDITIONAL PASS";
-          scoreWasCapped = true;
-        }
+        capScore(64);
+        capVerdict("CONDITIONAL PASS");
+      }
+
+      // ── Authenticity ceiling (enforce client-side as safety net) ─
+      const authScore = baseResult.scores?.authenticity?.score ?? 100;
+      if (authScore < 50) {
+        capScore(55);
+        capVerdict("BORDERLINE");
+      } else if (authScore < 65) {
+        capScore(64);
+        capVerdict("CONDITIONAL PASS");
       }
 
       const merged = {

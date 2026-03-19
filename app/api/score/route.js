@@ -109,6 +109,16 @@ The overall_score is your honest weighted judgment — not an average of the dim
 Authenticity carries the most weight. Brand safety is a floor: severe safety issues
 should collapse the overall regardless of other dimension scores.
 
+AUTHENTICITY CEILING RULE — this is mandatory, not a suggestion:
+- Authenticity score 0–49:  overall verdict cannot exceed BORDERLINE. overall_score cannot exceed 55.
+- Authenticity score 50–64: overall verdict cannot exceed CONDITIONAL PASS. overall_score cannot exceed 64.
+- Authenticity score 65+:   no ceiling applies — score freely based on full picture.
+
+Rationale: A partnership that consumers wouldn't find believable cannot be rescued
+by reach or safety alone. High platform numbers don't matter if nobody believes the pairing.
+Reese Witherspoon × PlayStation, Matt Damon × Nike, a classical pianist × an energy drink —
+these fail the believability test regardless of their other scores.
+
 ── OUTPUT FORMAT ────────────────────────────────────────────────────────────────
 Return ONLY valid JSON. No markdown fences, no preamble, no explanation.
 All score fields must be integers 0–100. Do not use strings or decimals.
