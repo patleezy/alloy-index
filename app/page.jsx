@@ -336,12 +336,7 @@ function ScoreInfoModal({ dim, onClose }) {
             ))}
           </div>
         )}
-        {info.examples && (
-          <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", marginTop: 4 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 5 }}>PRECEDENTS</div>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.65, margin: 0 }}>{info.examples}</p>
-          </div>
-        )}
+
       </div>
     </div>
   );
