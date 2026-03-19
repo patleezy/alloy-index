@@ -11,7 +11,6 @@ async function geminiWithRetry(url, body, timeoutMs = 9000) {
         body: JSON.stringify(body),
       });
       clearTimeout(timer);
-      // Retry on 503 (overloaded) or 429 (rate limit) on first attempt
       if ((res.status === 503 || res.status === 429) && attempt === 1) {
         console.warn(`Gemini ${res.status} on attempt 1 — retrying in 1.5s...`);
         await new Promise(r => setTimeout(r, 1500));
@@ -25,7 +24,7 @@ async function geminiWithRetry(url, body, timeoutMs = 9000) {
         await new Promise(r => setTimeout(r, 500));
         continue;
       }
-      throw err; // re-throw on second attempt or non-abort errors
+      throw err;
     }
   }
 }
@@ -65,49 +64,76 @@ ${notes ? `- Notes: ${notes}` : ""}
 LIVE RESEARCH:
 ${researchContext || "No live research available. Use your training knowledge."}
 
-Score across 5 dimensions 0-100. Be specific, cite real facts. Never be generic.
+── SCORING RUBRIC ───────────────────────────────────────────────────────────────
+Form your judgment first. Then assign a score. Never work backwards from a number.
 
-SCORING INSTRUCTIONS — read before generating scores:
-- Use the FULL 0-100 range. Do not cluster around 80.
-- A score of 90+ requires genuinely exceptional fit with real evidence. It should be rare.
-- A score of 50-65 means real friction — meaningful mismatch or risk in this dimension.
-- A score below 40 means a serious problem in this dimension.
-- Scores across dimensions should vary based on actual fit — a talent can score 92 on platform reach and 61 on international reach. That variation is expected and correct.
-- The overall_score should be your honest weighted judgment, not an average.
-- Authenticity carries the most weight on the overall score — a poor fit between talent and brand identity is the hardest thing to fix regardless of reach or safety.
-- Brand safety must reflect documented public record only. Do not speculate about future risk.
-- A talent with no documented controversies, no legal issues, and a track record of successful partnerships with reputable brands should score 90 or above on brand safety. This is the correct score for genuinely clean talent — do not artificially lower it.
-- Only score brand safety below 75 if there is specific, documented evidence of risk — a real incident, a real controversy, a real legal matter.
-- For talent with documented hate speech, antisemitic statements, criminal convictions for violent or sexual crimes, or federal indictments: brand safety must score 20 or below. These are not manageable risks — they are disqualifying. Kanye West's antisemitic statements and Hitler praise, for example, should produce a brand safety score near 0, not 78.
-- PROHIBITED watchouts for brand safety: never write "unforeseen PR issues could arise", "all public figures carry inherent risk", "social media sentiment could shift", or any other generic hedge that applies to every human being. Watchouts must cite a specific documented concern or be omitted entirely.
-- Be opinionated. Vague scores around 75-85 are a sign of hedging, not analysis.
-- For the authenticity dimension specifically: score how natural and believable this partnership would feel to consumers. Ask yourself — would audiences find this pairing credible, or would they ask "why are they together?" A mismatched talent-brand combo (e.g. a prestige film actor for an athletic brand) should score low here even if they score well on other dimensions. This is the most brand-specific dimension — weight the brand profile heavily.
+Each dimension is scored 0–100 using this scale:
 
-Return ONLY this JSON, no markdown, no preamble:
+  90–100  Exceptional. Reserved for genuinely outstanding fit with specific evidence.
+  75–89   Strong. Clear alignment with real upside. Minor concerns only.
+  60–74   Solid but conditional. Real strengths offset by real, named concerns.
+  40–59   Problematic. Meaningful friction or mismatch requiring active mitigation.
+  0–39    Disqualifying in this dimension. Serious documented risk or fundamental mismatch.
+
+DIMENSION DEFINITIONS:
+
+CULTURAL ALIGNMENT — Does the talent's persona, values, and cultural associations
+reinforce this brand's identity? Would the pairing feel natural to people who know both?
+
+AUDIENCE DEMOGRAPHICS — How much overlap exists between the talent's actual fanbase
+and this brand's target consumer? Consider age, income, geography, and psychographics.
+
+PLATFORM REACH — What is the talent's total addressable reach across social, broadcast,
+press, and live appearances? Consider follower counts, engagement rates, and earned media.
+
+BRAND SAFETY — What does the documented public record show? Score this dimension based
+solely on verified facts, not speculation about what might happen.
+  - No documented issues + track record of reputable partnerships = 90 or above. Full stop.
+  - Do NOT write watchouts like "unforeseen PR issues could arise" or "all talent carry risk."
+    These are meaningless and unfairly penalize clean talent. Omit them entirely.
+  - Documented hate speech, antisemitism, criminal convictions, or federal indictments = 0–15.
+    These are not risks to be managed. They are disqualifying.
+
+INTERNATIONAL REACH — How strong is the talent's recognition and cultural resonance
+in the brand's key markets? Name specific strong and weak markets.
+
+AUTHENTICITY — This carries the most weight on the overall score.
+Would consumers find this partnership believable and natural, or would they ask
+"why are they together?" Score based on how well the talent's identity, category,
+and story map onto this specific brand — not just culture in general.
+A mismatched combo (e.g. a prestige film actor for an athletic performance brand)
+should score low here even with high scores elsewhere.
+
+── OVERALL SCORE ────────────────────────────────────────────────────────────────
+The overall_score is your honest weighted judgment — not an average of the dimensions.
+Authenticity carries the most weight. Brand safety is a floor: severe safety issues
+should collapse the overall regardless of other dimension scores.
+
+── OUTPUT FORMAT ────────────────────────────────────────────────────────────────
+Return ONLY valid JSON. No markdown fences, no preamble, no explanation.
+All score fields must be integers 0–100. Do not use strings or decimals.
+
 {
   "overall_verdict": "PASS",
-  "overall_score": 74,
-  "exec_summary": "2-3 sentence CMO-ready summary",
-  "deal_headline": "8 words max",
+  "overall_score": <integer derived from rubric>,
+  "exec_summary": "2-3 sentence CMO-ready summary, specific and actionable",
+  "deal_headline": "8 words max, punchy",
   "recommended_activation": "1 sentence",
-  "risk_flag": "single most important risk or null",
+  "risk_flag": "single most important risk, or null",
   "scores": {
-    "cultural":      { "score": 88, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "audience":      { "score": 79, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "platform":      { "score": 91, "headline": "5-8 words", "analysis": "2-3 sentences with reach estimates", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "safety":        { "score": 78, "headline": "5-8 words", "analysis": "2-3 sentences on documented risk only", "strengths": ["s1"], "watchouts": ["w1"] },
-    "international":  { "score": 67, "headline": "5-8 words", "analysis": "2-3 sentences naming markets", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "authenticity":   { "score": 72, "headline": "5-8 words", "analysis": "2-3 sentences on fit believability", "strengths": ["s1","s2"], "watchouts": ["w1"] }
+    "cultural":      { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences citing real facts", "strengths": ["specific strength"], "watchouts": ["specific documented concern or omit"] },
+    "audience":      { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["specific strength"], "watchouts": ["specific documented concern or omit"] },
+    "platform":      { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences with real reach estimates", "strengths": ["specific strength"], "watchouts": ["specific documented concern or omit"] },
+    "safety":        { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences on documented record only", "strengths": ["specific strength"], "watchouts": ["specific documented concern only — omit if none"] },
+    "international": { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences naming specific markets", "strengths": ["specific strength"], "watchouts": ["specific documented concern or omit"] },
+    "authenticity":  { "score": <integer>, "headline": "5-8 words", "analysis": "2-3 sentences on fit believability", "strengths": ["specific strength"], "watchouts": ["specific documented concern or omit"] }
   },
-  "comparable_deals": ["deal1","deal2","deal3"],
-  "ideal_markets": ["market1","market2","market3"],
-  "deal_type_recommendation": "Endorsement or Ambassador or Content Series etc"
+  "comparable_deals": ["real deal 1", "real deal 2", "real deal 3"],
+  "ideal_markets": ["market 1", "market 2", "market 3"],
+  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc"
 }
 
-RULES:
-- overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
-- Dimension scores should reflect genuine variation — do not round to 5s or cluster near 80
-- The example scores above are illustrative of the variation expected, not targets`;
+overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS`;
 
     const res = await geminiWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
@@ -139,6 +165,19 @@ RULES:
 
     try {
       const parsed = JSON.parse(cleaned);
+
+      // Sanitize: ensure all scores are integers
+      if (parsed.scores) {
+        for (const key of Object.keys(parsed.scores)) {
+          if (parsed.scores[key]?.score !== undefined) {
+            parsed.scores[key].score = Math.min(100, Math.max(0, parseInt(parsed.scores[key].score) || 0));
+          }
+        }
+      }
+      if (parsed.overall_score !== undefined) {
+        parsed.overall_score = Math.min(100, Math.max(0, parseInt(parsed.overall_score) || 0));
+      }
+
       return Response.json({ result: parsed });
     } catch (parseErr) {
       console.error("Score JSON parse failed:", parseErr.message, rawText.slice(0, 300));
