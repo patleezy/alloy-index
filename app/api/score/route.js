@@ -72,8 +72,10 @@ SCORING INSTRUCTIONS — read before generating scores:
 - A score of 90+ requires genuinely exceptional fit with real evidence. It should be rare.
 - A score of 50-65 means real friction — meaningful mismatch or risk in this dimension.
 - A score below 40 means a serious problem in this dimension.
-- Scores across dimensions should vary based on actual fit — a talent can score 92 on platform reach and 45 on brand safety. That variation is expected and correct.
-- The overall_score should be your honest weighted judgment, not an average. Weight safety and cultural alignment more heavily for risk-averse brands.
+- Scores across dimensions should vary based on actual fit — a talent can score 92 on platform reach and 61 on international reach. That variation is expected and correct.
+- The overall_score should be your honest weighted judgment, not an average.
+- Authenticity carries the most weight on the overall score — a poor fit between talent and brand identity is the hardest thing to fix regardless of reach or safety.
+- Brand safety must reflect documented public record only. Do not speculate about future risk or predict something could happen. A talent with no known controversies, legal issues, or inflammatory public statements should score 80 or above on brand safety. Only score below 70 if there is actual documented evidence of risk.
 - Be opinionated. Vague scores around 75-85 are a sign of hedging, not analysis.
 - For the authenticity dimension specifically: score how natural and believable this partnership would feel to consumers. Ask yourself — would audiences find this pairing credible, or would they ask "why are they together?" A mismatched talent-brand combo (e.g. a prestige film actor for an athletic brand) should score low here even if they score well on other dimensions. This is the most brand-specific dimension — weight the brand profile heavily.
 
@@ -89,9 +91,9 @@ Return ONLY this JSON, no markdown, no preamble:
     "cultural":      { "score": 88, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
     "audience":      { "score": 79, "headline": "5-8 words", "analysis": "2-3 sentences", "strengths": ["s1","s2"], "watchouts": ["w1"] },
     "platform":      { "score": 91, "headline": "5-8 words", "analysis": "2-3 sentences with reach estimates", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "safety":        { "score": 52, "headline": "5-8 words", "analysis": "2-3 sentences on risk", "strengths": ["s1"], "watchouts": ["w1","w2"] },
+    "safety":        { "score": 78, "headline": "5-8 words", "analysis": "2-3 sentences on documented risk only", "strengths": ["s1"], "watchouts": ["w1"] },
     "international":  { "score": 67, "headline": "5-8 words", "analysis": "2-3 sentences naming markets", "strengths": ["s1","s2"], "watchouts": ["w1"] },
-    "authenticity":   { "score": 58, "headline": "5-8 words", "analysis": "2-3 sentences on fit believability", "strengths": ["s1"], "watchouts": ["w1","w2"] }
+    "authenticity":   { "score": 72, "headline": "5-8 words", "analysis": "2-3 sentences on fit believability", "strengths": ["s1","s2"], "watchouts": ["w1"] }
   },
   "comparable_deals": ["deal1","deal2","deal3"],
   "ideal_markets": ["market1","market2","market3"],
