@@ -63,6 +63,7 @@ const DIMS = [
   { key: "platform",      label: "Platform Reach",        icon: "◎" },
   { key: "safety",        label: "Brand Safety",          icon: "◇" },
   { key: "international", label: "International Reach",   icon: "◆" },
+  { key: "authenticity",  label: "Authenticity",          icon: "✦" },
 ];
 
 
@@ -169,8 +170,8 @@ const scoreColor = (s) => {
 
 function RadarChart({ scores, theme }) {
   const cx = 120, cy = 120, r = 76;
-  const keys = ["cultural","audience","platform","safety","international"];
-  const labels = ["Cultural","Audience","Platform","Safety","Intl."];
+  const keys = ["cultural","audience","platform","safety","international","authenticity"];
+  const labels = ["Cultural","Audience","Platform","Safety","Intl.","Authentic"];
   const step = (2 * Math.PI) / keys.length;
   const pt = (i, val) => {
     const a = -Math.PI / 2 + i * step, p = (val || 0) / 100;
@@ -285,6 +286,10 @@ const SCORE_INFO = {
       { label: "50–64 · BORDERLINE", color: "#f97316", note: "Significant conditions required" },
       { label: "0–49 · NO PASS", color: "#C8102E", note: "Do not proceed without major changes" },
     ]
+  },
+  authenticity: {
+    title: "Authenticity Score",
+    desc: "Measures how believable and natural this partnership would feel to consumers — does the talent's identity, category, and public story make sense alongside this brand, or would audiences ask 'why are they together?' This is the most subjective dimension in the assessment. The score reflects our read based on the brand profile you provided, but you know your brand, your consumers, and your internal strategy better than any tool can. Use this as a starting point for the conversation.",
   },
   cultural: { title: "Cultural Alignment", desc: "How well the talent's public persona, values, and cultural associations reinforce your brand identity. High scores mean the talent's image and story amplify your brand message organically." },
   audience: { title: "Audience Demographics", desc: "Overlap between the talent's fanbase and your target consumer. Considers age, income, geography, and psychographic fit. High scores mean the talent reaches exactly who you're trying to reach." },
@@ -1214,7 +1219,8 @@ export default function Home() {
       ["Brand", "Talent", "Type", "Date", "Verdict", "Overall Score", "Deal Type", "Deal Headline", "Exec Summary", "Activation", "Risk Flag"],
       [brand.name, talentName, talentType, new Date().toLocaleDateString(), result.overall_verdict, result.overall_score, result.deal_type_recommendation, result.deal_headline, result.exec_summary, result.recommended_activation, result.risk_flag || ""],
       [],
-      ["Dimension", "Score", "Headline", "Analysis", "Strengths", "Watchouts"],
+      ["Dimension", "Score", "Headline", "Analysis", "Strengths", "Watchouts", "Note"],
+      ["Authenticity is the most subjective dimension — use as a directional guide only."],
       ...DIMS.map(d => {
         const dim = result.scores?.[d.key];
         return dim ? [d.label, dim.score, dim.headline, dim.analysis, (dim.strengths||[]).join("; "), (dim.watchouts||[]).join("; ")] : [];
