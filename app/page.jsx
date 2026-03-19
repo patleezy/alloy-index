@@ -20,6 +20,7 @@ const NIKE_DEFAULTS = {
 const EMPTY_BRAND = { name: "", industry: "", values: "", audience: "", markets: [], context: "" };
 
 const MARKET_OPTIONS = [
+  { label: "Global",        flag: "🌐" },
   { label: "United States", flag: "🇺🇸" },
   { label: "United Kingdom", flag: "🇬🇧" },
   { label: "Germany",        flag: "🇩🇪" },
@@ -612,15 +613,35 @@ function BrandPanel({ brand, onChange, savedFlash }) {
         <div>
           <label style={LABEL_STYLE}>Key Markets</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
-            {MARKET_OPTIONS.map(m => (
-              <Chip key={m.label} label={`${m.flag} ${m.label}`}
-                active={(brand.markets || []).includes(m.label)}
-                onClick={() => toggleMarket(m.label)} small />
-            ))}
+            {MARKET_OPTIONS.map(m => {
+              const isGlobal = m.label === "Global";
+              const allRegions = MARKET_OPTIONS.filter(x => x.label !== "Global").map(x => x.label);
+              const hasGlobal = (brand.markets || []).includes("Global");
+              const isActive = isGlobal ? hasGlobal : (brand.markets || []).includes(m.label);
+              const handleClick = isGlobal
+                ? () => {
+                    if (hasGlobal) {
+                      onChange("markets", []);
+                    } else {
+                      onChange("markets", ["Global"]);
+                    }
+                  }
+                : () => {
+                    if (hasGlobal) return; // locked when Global is selected
+                    toggleMarket(m.label);
+                  };
+              return (
+                <Chip key={m.label} label={`${m.flag} ${m.label}`}
+                  active={isActive}
+                  onClick={handleClick}
+                  small
+                  style={hasGlobal && !isGlobal ? { opacity: 0.35, cursor: "not-allowed" } : {}} />
+              );
+            })}
           </div>
           {(brand.markets || []).length > 0 && (
             <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-body)", marginTop: 4 }}>
-              Selected: {brand.markets.join(", ")}
+              {(brand.markets || []).includes("Global") ? "🌐 All global markets selected" : `Selected: ${brand.markets.join(", ")}`}
             </p>
           )}
         </div>

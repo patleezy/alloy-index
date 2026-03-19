@@ -75,7 +75,10 @@ SCORING INSTRUCTIONS — read before generating scores:
 - Scores across dimensions should vary based on actual fit — a talent can score 92 on platform reach and 61 on international reach. That variation is expected and correct.
 - The overall_score should be your honest weighted judgment, not an average.
 - Authenticity carries the most weight on the overall score — a poor fit between talent and brand identity is the hardest thing to fix regardless of reach or safety.
-- Brand safety must reflect documented public record only. Do not speculate about future risk or predict something could happen. A talent with no known controversies, legal issues, or inflammatory public statements should score 80 or above on brand safety. Only score below 70 if there is actual documented evidence of risk.
+- Brand safety must reflect documented public record only. Do not speculate about future risk.
+- A talent with no documented controversies, no legal issues, and a track record of successful partnerships with reputable brands should score 90 or above on brand safety. This is the correct score for genuinely clean talent — do not artificially lower it.
+- Only score brand safety below 75 if there is specific, documented evidence of risk — a real incident, a real controversy, a real legal matter.
+- PROHIBITED watchouts for brand safety: never write "unforeseen PR issues could arise", "all public figures carry inherent risk", "social media sentiment could shift", or any other generic hedge that applies to every human being. Watchouts must cite a specific documented concern or be omitted entirely.
 - Be opinionated. Vague scores around 75-85 are a sign of hedging, not analysis.
 - For the authenticity dimension specifically: score how natural and believable this partnership would feel to consumers. Ask yourself — would audiences find this pairing credible, or would they ask "why are they together?" A mismatched talent-brand combo (e.g. a prestige film actor for an athletic brand) should score low here even if they score well on other dimensions. This is the most brand-specific dimension — weight the brand profile heavily.
 
