@@ -610,33 +610,33 @@ function BrandPanel({ brand, onChange, savedFlash }) {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
             {MARKET_OPTIONS.map(m => {
               const isGlobal = m.label === "Global";
-              const allRegions = MARKET_OPTIONS.filter(x => x.label !== "Global").map(x => x.label);
               const hasGlobal = (brand.markets || []).includes("Global");
               const isActive = isGlobal ? hasGlobal : (brand.markets || []).includes(m.label);
               const handleClick = isGlobal
                 ? () => {
-                    if (hasGlobal) {
-                      onChange("markets", []);
-                    } else {
-                      onChange("markets", ["Global"]);
-                    }
+                    // Toggle Global — if already selected, clear; otherwise set Global
+                    onChange("markets", hasGlobal ? [] : ["Global"]);
                   }
                 : () => {
-                    if (hasGlobal) return; // locked when Global is selected
-                    toggleMarket(m.label);
+                    // If Global is active, clicking a region deselects Global
+                    // and selects just that region instead
+                    if (hasGlobal) {
+                      onChange("markets", [m.label]);
+                    } else {
+                      toggleMarket(m.label);
+                    }
                   };
               return (
                 <Chip key={m.label} label={`${m.flag} ${m.label}`}
                   active={isActive}
                   onClick={handleClick}
-                  small
-                  style={hasGlobal && !isGlobal ? { opacity: 0.35, cursor: "not-allowed" } : {}} />
+                  small />
               );
             })}
           </div>
           {(brand.markets || []).length > 0 && (
             <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-body)", marginTop: 4 }}>
-              {(brand.markets || []).includes("Global") ? "🌐 All global markets selected" : `Selected: ${brand.markets.join(", ")}`}
+              {(brand.markets || []).includes("Global") ? "🌐 All global markets selected" : `Selected: ${(brand.markets || []).join(", ")}`}
             </p>
           )}
         </div>
