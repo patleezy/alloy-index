@@ -140,10 +140,22 @@ All score fields must be integers 0–100. Do not use strings or decimals.
   },
   "comparable_deals": ["real deal 1", "real deal 2", "real deal 3"],
   "ideal_markets": ["market 1", "market 2", "market 3"],
-  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc"
+  "deal_type_recommendation": "Endorsement or Ambassador or Content Series or Collab Product etc",
+  "you_may_also_consider": [
+    { "name": "Talent Name", "type": "Musician / Artist", "rationale": "1 sentence on why this talent is a strong alternative for this specific brand" },
+    { "name": "Talent Name", "type": "Athlete / Sports Figure", "rationale": "1 sentence on why" },
+    { "name": "Talent Name", "type": "Cultural Icon", "rationale": "1 sentence on why" }
+  ]
 }
 
-overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS`;
+overall_verdict must be exactly one of: STRONG PASS, PASS, CONDITIONAL PASS, BORDERLINE, NO PASS
+
+For you_may_also_consider:
+- Suggest 3 real talent with similar audience overlap and cultural positioning to the evaluated talent
+- Each suggestion should be a genuinely credible fit for this specific brand — not just famous people in the same category
+- Rationale must be brand-specific: explain why this alternative works for THIS brand, not generically
+- Vary the talent types across the 3 suggestions where possible
+- Never suggest the talent being evaluated`;
 
     const res = await geminiWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,

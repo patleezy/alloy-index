@@ -949,6 +949,40 @@ export default function Home() {
   // ── Score ─────────────────────────────────────────────────────────────────
   const canScore = brand.name.trim() && talentName.trim() && talentType;
 
+  const handleSuggestedTalent = (suggestion) => {
+    // Auto-save current result to history before replacing
+    if (result) {
+      try {
+        const histRaw = localStorage.getItem(HISTORY_KEY);
+        const hist = histRaw ? JSON.parse(histRaw) : [];
+        const entry = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          talentName,
+          talentType,
+          brandName: brand.name,
+          industry: brand.industry,
+          verdict: result.overall_verdict,
+          score: result.overall_score,
+          result,
+          inputs: { talentName, talentType, brand: { ...brand } },
+        };
+        const next = [entry, ...hist].slice(0, 20);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      } catch {}
+    }
+    // Pre-fill and trigger new assessment
+    setTalentName(suggestion.name);
+    setTalentType(suggestion.type);
+    setResult(null);
+    setError("");
+    setMobileTab("brand");
+    // Small delay to let state update before triggering
+    setTimeout(() => {
+      document.querySelector("button[data-run]")?.click();
+    }, 100);
+  };
+
   const handleScore = async () => {
     if (!canScore) return;
     setLoading(true); setResult(null); setError("");
@@ -1257,6 +1291,10 @@ export default function Home() {
       [],
       ...(result.controversy_flags?.flags || []).map(f => [f.severity, f.category, f.title, f.detail, f.brand_impact, (f.mitigations||[]).join("; ")]),
       ["Comparable Deals", (result.comparable_deals||[]).join("; ")],
+      [],
+      ["YOU MAY ALSO CONSIDER"],
+      ["Name", "Type", "Rationale"],
+      ...(result.you_may_also_consider||[]).map(s => [s.name, s.type, s.rationale]),
     ];
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -1373,7 +1411,7 @@ export default function Home() {
       </div>
 
       {/* Score button */}
-      <button onClick={handleScore} disabled={!canScore || loading} style={{
+      <button data-run onClick={handleScore} disabled={!canScore || loading} style={{
         width: "100%", padding: "13px 20px",
         background: canScore && !loading ? "var(--red)" : "var(--tag-bg)",
         border: `1px solid ${canScore && !loading ? "var(--red)" : "var(--border)"}`,
@@ -1612,6 +1650,45 @@ export default function Home() {
             </div>
           </div>
 
+
+          {/* ── You May Also Consider ───────────────────────────────────── */}
+          {result.you_may_also_consider?.length > 0 && (
+            <div style={{
+              background: "var(--card)", border: "1px solid var(--border)",
+              borderRadius: "var(--radius)", padding: "20px 24px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.16em", color: "var(--muted)" }}>✦ YOU MAY ALSO CONSIDER</span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--muted2)" }}>Based on similar audience, cultural positioning, and brand fit</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }} className="suggestion-grid">
+                {result.you_may_also_consider.map((s, i) => (
+                  <button key={i} onClick={() => handleSuggestedTalent(s)} style={{
+                    background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-sm)", padding: "14px 16px",
+                    cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                    display: "flex", flexDirection: "column", gap: 6,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--red-border)"; e.currentTarget.style.background = "var(--red-soft)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color: "var(--text)", letterSpacing: "0.02em" }}>
+                        {s.name}
+                      </div>
+                      <span style={{ fontSize: 10, color: "var(--red)", fontFamily: "var(--font-display)", fontWeight: 700 }}>→</span>
+                    </div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 9, letterSpacing: "0.08em", color: "var(--muted)", textTransform: "uppercase" }}>
+                      {s.type}
+                    </div>
+                    <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text2)", lineHeight: 1.5 }}>
+                      {s.rationale}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Controversy Flags ────────────────────────────────────────── */}
           {result.controversy_flags && (() => {
