@@ -27,7 +27,7 @@ export async function POST(request) {
         : res.status === 429 || res.status === 432 || res.status === 433
           ? "Research service is rate-limited or out of credits. Try again later."
           : `Research search failed (${res.status}).`;
-      return Response.json({ error: msg }, { status: 502 });
+      return Response.json({ error: msg }, { status: 500 });
     }
 
     const data = await res.json();
