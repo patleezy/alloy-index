@@ -143,7 +143,7 @@ For you_may_also_consider:
     if (!res.ok) {
       const errText = await res.text();
       console.error("Gemini score error:", res.status, errText);
-      return Response.json({ error: geminiErrorMessage(res.status) }, { status: 502 });
+      return Response.json({ error: geminiErrorMessage(res.status) }, { status: 500 });
     }
 
     const geminiData = await res.json();
@@ -179,7 +179,7 @@ For you_may_also_consider:
   } catch (err) {
     console.error("Score route error:", err.name, err.message);
     if (err.name === "AbortError") {
-      return Response.json({ error: "Scoring timed out. Please try again." }, { status: 504 });
+      return Response.json({ error: "Scoring timed out. Please try again." }, { status: 500 });
     }
     return Response.json({ error: "Something went wrong on the server. Please try again." }, { status: 500 });
   }
