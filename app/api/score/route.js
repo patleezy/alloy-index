@@ -1,35 +1,6 @@
-// Retry helper — retries once on 503 or timeout before failing
-async function geminiWithRetry(url, body, timeoutMs = 9000) {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify(body),
-      });
-      clearTimeout(timer);
-      if ((res.status === 503 || res.status === 429) && attempt === 1) {
-        console.warn(`Gemini ${res.status} on attempt 1 — retrying in 1.5s...`);
-        await new Promise(r => setTimeout(r, 1500));
-        continue;
-      }
-      return res;
-    } catch (err) {
-      clearTimeout(timer);
-      if (err.name === "AbortError" && attempt === 1) {
-        console.warn("Gemini timeout on attempt 1 — retrying...");
-        await new Promise(r => setTimeout(r, 500));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
+import { geminiGenerate, geminiErrorMessage } from "../../../lib/gemini";
 
-export const maxDuration = 10;
+export const maxDuration = 30;
 
 export async function POST(request) {
   try {
@@ -157,8 +128,8 @@ For you_may_also_consider:
 - Vary the talent types across the 3 suggestions where possible
 - Never suggest the talent being evaluated`;
 
-    const res = await geminiWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+    const res = await geminiGenerate(
+      apiKey,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
@@ -172,7 +143,7 @@ For you_may_also_consider:
     if (!res.ok) {
       const errText = await res.text();
       console.error("Gemini score error:", res.status, errText);
-      return Response.json({ error: `Gemini API failed (${res.status})` }, { status: 502 });
+      return Response.json({ error: geminiErrorMessage(res.status) }, { status: 502 });
     }
 
     const geminiData = await res.json();
@@ -210,6 +181,6 @@ For you_may_also_consider:
     if (err.name === "AbortError") {
       return Response.json({ error: "Scoring timed out. Please try again." }, { status: 504 });
     }
-    return Response.json({ error: `Server error: ${err.message}` }, { status: 500 });
+    return Response.json({ error: "Something went wrong on the server. Please try again." }, { status: 500 });
   }
 }

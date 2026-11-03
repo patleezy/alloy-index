@@ -881,6 +881,21 @@ function FavoritesDrawer({ open, onClose, onLoad, currentResult, currentInputs }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// Safely parse an API response. If the server (or Vercel) returns a non-JSON
+// body — e.g. a timeout or crash page — show a readable error instead of the
+// browser's cryptic JSON parse message ("The string did not match the expected pattern").
+async function readJson(res, label) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (res.status === 504 || /timeout|timed out/i.test(text)) {
+      throw new Error(`${label} timed out. Please try again.`);
+    }
+    throw new Error(`${label} failed (${res.status || "network error"}). Please try again.`);
+  }
+}
+
 export default function Home() {
   const [theme, setTheme]           = useState("dark");
   const [brand, setBrand]           = useState({ ...NIKE_DEFAULTS });
@@ -995,7 +1010,7 @@ export default function Home() {
           query: `"${talentName}" brand partnerships endorsements reputation ${talentType} ${new Date().getFullYear()}`,
         }),
       });
-      const searchData = await searchRes.json();
+      const searchData = await readJson(searchRes, "Research");
       if (!searchRes.ok) throw new Error(searchData.error || "Search failed");
 
       const researchContext = [
@@ -1019,14 +1034,18 @@ export default function Home() {
         }),
       ]);
 
-      const scoreData = await scoreRes.json();
+      const scoreData = await readJson(scoreRes, "Scoring");
       if (!scoreRes.ok) throw new Error(scoreData.error || "Scoring failed");
 
       // Controversy is non-blocking — if it fails, degrade gracefully
       let controversyFlags = null;
       if (controversyRes.ok) {
-        const controversyData = await controversyRes.json();
-        controversyFlags = controversyData.result || null;
+        try {
+          const controversyData = await readJson(controversyRes, "Risk analysis");
+          controversyFlags = controversyData.result || null;
+        } catch (e) {
+          console.warn("Controversy response unreadable — proceeding without flags");
+        }
       } else {
         console.warn("Controversy analysis failed — proceeding without flags");
       }

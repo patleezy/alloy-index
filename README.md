@@ -1,6 +1,6 @@
 # Alloy Index
 
-> A brand partnership assessment tool — powered by Tavily research + Gemini 2.5 Flash
+> A brand partnership assessment tool — powered by Tavily research + Gemini 3.5 Flash-Lite
 
 Enter any talent or brand, get a scored analysis across 5 dimensions backed by live web research.
 
@@ -9,7 +9,7 @@ Enter any talent or brand, get a scored analysis across 5 dimensions backed by l
 ## Stack
 
 - **Next.js 14** (App Router)
-- **Gemini 2.5 Flash** (`gemini-2.5-flash`) for scoring
+- **Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite`, override with `GEMINI_MODEL`) for scoring
 - **Tavily** for live web research on talent
 - No UI libraries — custom SVG radar chart, CSS-only animations
 

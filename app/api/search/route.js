@@ -10,9 +10,8 @@ export async function POST(request) {
 
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        api_key: apiKey,
         query: query.trim(),
         search_depth: "advanced",
         max_results: 8,
@@ -23,7 +22,12 @@ export async function POST(request) {
 
     if (!res.ok) {
       console.error("Tavily error:", res.status, await res.text());
-      return Response.json({ error: `Tavily search failed (${res.status})` }, { status: 502 });
+      const msg = res.status === 401 || res.status === 403
+        ? "Research service rejected the request — check that TAVILY_API_KEY is valid."
+        : res.status === 429 || res.status === 432 || res.status === 433
+          ? "Research service is rate-limited or out of credits. Try again later."
+          : `Research search failed (${res.status}).`;
+      return Response.json({ error: msg }, { status: 502 });
     }
 
     const data = await res.json();
